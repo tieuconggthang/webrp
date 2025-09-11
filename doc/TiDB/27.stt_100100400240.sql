@@ -1,0 +1,75 @@
+Insert Into ZEN_CONFIG_FEE_IBFT(FEE_KEY,FEE_VALUE,FEE_ORDER,FEE_DATE)
+Select FEE_KEY, FEE_VALUE, FEE_ORDER, Sysdate
+From
+(
+Select FEE_KEY, FEE_VALUE, RANK() OVER (Partition By FEE_VALUE ORDER BY FEE_ORDER) FEE_ORDER
+From
+(
+Select FEE_KEY, B.ZEN_VALUE||C.ZEN_VALUE||D.ZEN_VALUE||E.ZEN_VALUE||F.ZEN_VALUE As FEE_VALUE, 
+    Case
+        When A.ACQUIRER = B.ZEN_VALUE And A.ISSUER = C.ZEN_VALUE Then 1
+        When A.ISSUER = C.ZEN_VALUE And A.ACQUIRER = 0 Then 3
+        When A.ISSUER = 0 And A.ACQUIRER = B.ZEN_VALUE Then 3
+        When A.ISSUER = C.ZEN_VALUE And A.ISSUER <> C.ZEN_VALUE Then 5 + ORDER_CONFIG
+        When A.ISSUER <> C.ZEN_VALUE And A.ACQUIRER = B.ZEN_VALUE Then 5 + ORDER_CONFIG
+        When A.ISSUER <> C.ZEN_VALUE And A.ACQUIRER <> B.ZEN_VALUE Then 10
+    End As FEE_ORDER
+From
+(
+Select FEE_KEY, ISSUER, ACQUIRER, PRO_CODE, CURRENCY_CODE, MERCHANT_TYPE, ORDER_CONFIG
+From Gr_Fee_Config_New
+Where To_Date('07/09/2025','dd/mm/yyyy') Between VALID_FROM And VALID_TO
+) A
+Inner Join
+(
+    Select *
+    From ZEN_FEE_VALUE_IBFT
+    Where ZEN_TYPE = 'ACQUIRER'
+) B
+On 
+(
+    Decode(A.ACQUIRER,0,B.ZEN_VALUE,A.ACQUIRER) = B.ZEN_VALUE
+)
+Inner Join
+(
+    Select *
+    From ZEN_FEE_VALUE_IBFT
+    Where ZEN_TYPE = 'ISSUER'
+) C
+On 
+(
+    Decode(A.ISSUER,0,C.ZEN_VALUE,A.ISSUER) = C.ZEN_VALUE
+)
+Inner Join
+(
+    Select *
+    From ZEN_FEE_VALUE_IBFT
+    Where ZEN_TYPE = 'CURRENCY_CODE'
+) D
+On 
+(
+    A.CURRENCY_CODE = D.ZEN_VALUE
+)
+Inner Join
+(
+    Select *
+    From ZEN_FEE_VALUE_IBFT
+    Where ZEN_TYPE = 'MERCHANT_TYPE'
+) E
+On 
+(
+    Decode(A.MERCHANT_TYPE,0,E.ZEN_VALUE,A.MERCHANT_TYPE) = E.ZEN_VALUE
+)
+Inner Join
+(
+    Select *
+    From ZEN_FEE_VALUE_IBFT
+    Where ZEN_TYPE = 'PCODE'
+) F
+On 
+(
+    A.PRO_CODE = F.ZEN_VALUE
+)
+)
+)
+Where FEE_ORDER = 1
