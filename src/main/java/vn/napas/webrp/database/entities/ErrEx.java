@@ -2,7 +2,6 @@ package vn.napas.webrp.database.entities;
 
 import java.io.Serializable;
 import jakarta.persistence.*;
-import java.util.Date;
 
 
 /**
@@ -15,28 +14,21 @@ import java.util.Date;
 public class ErrEx implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	@Column(name="ERR_CODE")
-	private String errCode;
+	@EmbeddedId
+	private ErrExPK id;
 
 	@Column(name="ERR_DETAIL")
 	private String errDetail;
 
-	@Column(name="ERR_MODULE")
-	private String errModule;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="ERR_TIME")
-	private Date errTime;
-
 	public ErrEx() {
 	}
 
-	public String getErrCode() {
-		return this.errCode;
+	public ErrExPK getId() {
+		return this.id;
 	}
 
-	public void setErrCode(String errCode) {
-		this.errCode = errCode;
+	public void setId(ErrExPK id) {
+		this.id = id;
 	}
 
 	public String getErrDetail() {
@@ -45,22 +37,6 @@ public class ErrEx implements Serializable {
 
 	public void setErrDetail(String errDetail) {
 		this.errDetail = errDetail;
-	}
-
-	public String getErrModule() {
-		return this.errModule;
-	}
-
-	public void setErrModule(String errModule) {
-		this.errModule = errModule;
-	}
-
-	public Date getErrTime() {
-		return this.errTime;
-	}
-
-	public void setErrTime(Date errTime) {
-		this.errTime = errTime;
 	}
 
 }
