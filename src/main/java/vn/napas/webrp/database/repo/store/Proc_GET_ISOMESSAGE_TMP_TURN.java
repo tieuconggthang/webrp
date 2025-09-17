@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class Proc_GET_ISOMESSAGE_TMP_TURN {
     private final JdbcTemplate jdbc;
     private final DbLoggerRepository dblog;
+//    private final DbLoggerRepository dblog;
 
     /** Lấy watermark iSTT = max(STT) giữa SHCLOG và SHCLOG_SETT_IST */
     private long getWatermarkStt() {

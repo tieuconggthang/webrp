@@ -1,0 +1,138 @@
+CREATE OR REPLACE PROCEDURE WEBBC.CHECK_BACKEND_DOUBLE_KTC
+AS
+
+    -- Writen by    :   Hoind  
+    -- Date create  :   2016-06-29
+    -- Description  :   Kiem tra giao dich co hai thong diep chuyen tien kenh Internet Banking
+    
+    num INTEGER := 0 ;  
+    iNumEnd INTEGER := 0 ; 
+    iUpdate Integer;
+    istt Integer;
+    
+    ecode NUMBER;
+    emesg VARCHAR2(200);
+    vMType  VARCHAR2(30) := 'text/plain; charset=us-ascii';
+    vSender VARCHAR2(40) := 'baocaotest@napas.com.vn';
+    vReceiver VARCHAR2(30) := 'hoind@napas.com.vn';
+    vCC VARCHAR2(120) := 'cmt_doisoat@napas.com.vn';
+    bCC VARCHAR2(120) := '';
+    vSub VARCHAR2(150):= '(KTC) Check backend double trans' ;
+    vDetail VARCHAR2(500) := 'Nothing ! ';   
+    
+Begin   
+    
+    Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
+    Values(sysdate,'0','BEGIN','BACKEND_DOUBLE_KTC');
+    commit;
+    MERGE INTO 
+    (
+        Select *
+        From ibft_double
+        Where MODULE = 'BACKEND_DOUBLE_KTC'
+        And Trunc(RUNTIME) >= Trunc(Sysdate-3)
+    ) A 
+    USING
+    (   
+        Select ACQUIRER, ORIGTRACE AS TRACE, LOCAL_TIME, LOCAL_DATE, trim(TERMID) TERMID, AMOUNT
+        From
+        (
+            Select ACQUIRER, ORIGTRACE, LOCAL_TIME, LOCAL_DATE, trim(TERMID) TERMID, AMOUNT
+            From Shclog
+            Where Settlement_Date = Trunc(Sysdate-2) 
+            And
+            (
+                (
+                    Msgtype = 210
+                    And
+                    (
+                        ( SUBSTR( trim(TO_CHAR(PCODE,'099999')),1,2) In ('42','91') And Respcode between 1 and 98 and Respcode <> 68 ) -- Giao dich chuyen khoan khong thanh cong
+                        Or
+                        ( SUBSTR( trim(TO_CHAR(PCODE,'099999')),1,2) In ('00','01','30','35','40','41','48','94') And (Respcode between 0 and 98 Or (Respcode between 0 and 98 And Isrev Is not Null))) -- Giao dich ATM/POS
+                    ) -- Dieu kien giao dich khong thanh cong
+                    And Issuer_Rp Not In (220699,602907,605609,600005,600006,600007,GET_BCCARD_ID()) -- To chuc nuoc ngoai
+                    And Acquirer_Rp Not In (220699,605609,GET_BCCARD_ID()) -- To chuc nuoc ngoai
+                    And decode(BB_BIN,null,'000000',BB_BIN) not in (764000,600011)
+                )            
+            )
+            And Fee_Note is null
+            And PAN not like '970411%'
+            Union all
+            Select ACQUIRER, ORIGTRACE, LOCAL_TIME, LOCAL_DATE, trim(TERMID) TERMID, AMOUNT
+            From Shclog_sett_ibft
+            Where Settlement_Date = Trunc(Sysdate-1) 
+            And
+            (
+                (
+                    Msgtype = 210
+                    And
+                    (
+                        ( SUBSTR( trim(TO_CHAR(PCODE,'099999')),1,2) In ('42','91') And Respcode between 1 and 98 and Respcode <> 68 ) -- Giao dich chuyen khoan khong thanh cong
+                        Or
+                        ( SUBSTR( trim(TO_CHAR(PCODE,'099999')),1,2) In ('00','01','30','35','40','41','48','94') And (Respcode between 0 and 98 Or (Respcode between 0 and 98 And Isrev Is not Null))) -- Giao dich ATM/POS
+                    ) -- Dieu kien giao dich khong thanh cong
+                    And Issuer_Rp Not In (220699,602907,605609,600005,600006,600007,GET_BCCARD_ID()) -- To chuc nuoc ngoai
+                    And Acquirer_Rp Not In (220699,605609,GET_BCCARD_ID()) -- To chuc nuoc ngoai
+                )            
+            )
+            And Fee_Note is null
+            And PAN not like '970411%'
+        )         
+        Group by ACQUIRER, ORIGTRACE, LOCAL_TIME, LOCAL_DATE, trim(TERMID), AMOUNT
+        Having Count(*) > 1
+    ) B
+    On 
+    (
+        A.TRACE = B.TRACE
+        And A.LOCAL_TIME = B.LOCAL_TIME
+        And A.LOCAL_DATE = B.LOCAL_DATE
+        And A.TERMID = B.TERMID
+        And A.Amount = B.Amount
+        And Decode(A.ACQUIRER,null,0,A.ACQUIRER) = B.ACQUIRER
+    )
+    WHEN NOT MATCHED THEN 
+        INSERT(TRACE, LOCAL_TIME, LOCAL_DATE, TERMID, RUNTIME, MODULE,AMOUNT,ACQUIRER)
+        Values(B.TRACE, B.LOCAL_TIME, B.LOCAL_DATE, trim(B.TERMID), Sysdate, 'BACKEND_DOUBLE_KTC',B.AMOUNT,B.ACQUIRER)
+        ;
+    
+    num := SQL%ROWCOUNT;
+    
+    commit;
+    
+    IF num <> 0 THEN   
+        
+          
+        Select Count(*) Into iNumEnd
+        From Ibft_Double
+        Where  RUNTIME > Trunc(Sysdate)
+        And MODULE = 'BACKEND_DOUBLE_KTC';
+        
+        vDetail := ' Co '||num||' gd trung khi check KTC, vui long kiem tra';
+        
+        Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE,CRITICAL)
+        Values(sysdate,'-1',vDetail,'BACKEND_DOUBLE_KTC',2);
+       
+        
+        SEND_SMS('BACKEND_DOUBLE_KTC#0366155501;0988766330#'||vDetail);
+        
+    Else
+        vDetail := ' Khong co giao dich nao trung thong tin check KTC tren backend';
+        
+        Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
+        Values(sysdate,'0','OK','BACKEND_DOUBLE_KTC');
+        commit;
+    END IF;
+	
+    --Utl_Mail.send(vSender,vReceiver,vCC,bCC,vSub,vDetail,vMType,NULL); --  bo gui  mail 05/08
+EXCEPTION 
+    WHEN OTHERS THEN
+    
+    ecode := SQLCODE;
+    emesg := SQLERRM;
+    vDetail := ' CHECK_BACKEND_DOUBLE_KTC Err num: ' || TO_CHAR(ecode) || ' - Err detail: ' || emesg;
+    Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE,CRITICAL)
+    Values(sysdate,ecode,emesg,'BACKEND_DOUBLE_KTC',2);
+    
+    commit;
+    
+End;

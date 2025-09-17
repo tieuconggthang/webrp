@@ -33,14 +33,18 @@ public class DbLoggerRepository {
 	}
 
 	public void begin(String module, String detail) {
-		log("BEGIN", detail, module, 0);
+		log("0", detail, module, 0);
 	}
 
 	public void end(String module, String detail) {
-		log("END", detail, module, 0);
+		log("0", detail, module, 0);
 	}
 
+	public void error(String code, String module, String detail, int critical) {
+		log(code, detail, module, critical);
+	}
+	
 	public void error(String module, String detail) {
-		log("ERROR", detail, module, 1);
+		log("ERROR", detail, module, 2);
 	}
 }
