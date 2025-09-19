@@ -327,6 +327,12 @@ public class ZenFeeValueIbftBatch {
 			WHERE FEE_ORDER = :p_fee_order
 			""";
 
+	/**
+	 * 27.stt_100100400240.sl
+	 * @param processDate
+	 * @param feeOrder
+	 * @return
+	 */
 	public int insertConfigFeeIbft(LocalDate processDate, int feeOrder) {
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue("p_date", processDate) // LocalDate sẽ tự
 																									// map sang DATE

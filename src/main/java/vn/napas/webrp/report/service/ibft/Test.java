@@ -29,9 +29,11 @@ public class Test {
 	private GatherStats gatherStats; 
 	@EventListener(ApplicationReadyEvent.class)
 	public void test() {
-		testMainenance();
+//		testMainenance();
 //		insertIsoMsgTurnfromIsoMSg();	
-		insertIsoMsgTurnfromV_APG10_TRANS();
+//		insertIsoMsgTurnfromV_APG10_TRANS();
+//		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
+		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
 	}
 	
 	private void testMainenance() {
@@ -60,6 +62,32 @@ public class Test {
 			log.info("insertIsoMsgTurnfromIsoMSg");
 			LocalDate localDate =LocalDate.of(2025, 9, 9);
 			isoMessageTmpTurnLoader.insertFromSourceV_APG10_TRANS(localDate);
+		} catch (Exception e) {
+			log.error("Exception " + e.getMessage(), e);
+		} finally {
+
+		}
+	}
+	
+	
+	private void gatherTable(String chemaName, String tableName) {
+		try {
+			log.info("Starting");
+			gatherStats.gatherTableFillDataDaily(chemaName, tableName);
+		} catch (Exception e) {
+			log.error("Exception " + e.getMessage(), e);
+		} finally {
+
+		}
+
+	}
+	
+	
+	private void insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO() {
+		try {
+			log.info("insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO");
+//			LocalDate localDate = LocalDate.now();
+			isoMessageTmpTurnLoader.insertFromSourceISOMESSAGE_TMP_68_TO();
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
 		} finally {

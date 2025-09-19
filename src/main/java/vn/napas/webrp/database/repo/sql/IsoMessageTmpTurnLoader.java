@@ -500,7 +500,7 @@ public class IsoMessageTmpTurnLoader {
 				// 2) Xóa khỏi ISOMESSAGE_TMP_TURN
 				String deleteFromTurn = """
 						DELETE FROM ISOMESSAGE_TMP_TURN t
-						WHERE t.RESPONSE_CODE = 68
+						WHERE t.RESPONSE_CODE = '68'
 						  AND EXISTS (
 						    SELECT 1
 						    FROM ISOMESSAGE_TMP_TURN u
@@ -511,9 +511,10 @@ public class IsoMessageTmpTurnLoader {
 						      AND u.LOCAL_DATE = t.LOCAL_DATE
 						      AND u.ACQ_ID     = t.ACQ_ID
 						      AND u.TERM_ID    = t.TERM_ID
-						      AND u.RESPONSE_CODE NOT IN (68, 0)
+						      AND u.RESPONSE_CODE NOT IN ('68', '00')
 						  )
 						""";
+				
 				int deleted = jdbc.update(deleteFromTurn, java.util.Collections.emptyMap());
 
 				safeLog("0", "Delete From ISOMESSAGE_TMP_TURN " + deleted + " rows", MODULE, 0);

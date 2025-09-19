@@ -193,7 +193,13 @@ public class ShclogSettIbftSqlBatch {
         }
     }
     
+    /**
+     * 20.stt_100100400180.sql
+     * @param forceCast
+     * @return
+     */
     @Transactional/*(timeout = 300)*/
+    
     public int syncTransactionFeePackageFromInstitution(boolean forceCast) {
         long start = System.currentTimeMillis();
         String sql = forceCast ? SQL_SYNC_FEE_PKG_CAST : SQL_SYNC_FEE_PKG;
@@ -262,6 +268,9 @@ public class ShclogSettIbftSqlBatch {
             END
             """;
 
+        /**21.stt_100100400200.sql
+         * @return
+         */
         @Transactional/*(timeout = 600)*/
         public int updateIssuerFe() {
             long t0 = System.currentTimeMillis();

@@ -50,10 +50,13 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 	 * @param pSett_Code     mã hạch toán (int)
 	 */
 	@Transactional
-	public void run(String pQRY_FROM_DATE, String pQRY_TO_DATE, String pCreated_User, int pSett_Code) {
+	public void run(LocalDate pQRY_FROM_DATE, LocalDate pQRY_TO_DATE, String pCreated_User, int pSett_Code) {
 		long t0 = System.currentTimeMillis();
-		LocalDate d1 = LocalDate.parse(pQRY_FROM_DATE, DDMMYYYY);
-		LocalDate d2 = LocalDate.parse(pQRY_TO_DATE, DDMMYYYY);
+		LocalDate d1 = pQRY_FROM_DATE;
+		LocalDate d2 = pQRY_TO_DATE;
+		String fromddMMyyyy = pQRY_FROM_DATE.format(DDMMYYYY);
+		String toddMMyyyy = pQRY_FROM_DATE.format(DDMMYYYY);
+//		System.out.println("dd/MM/yyyy = " + ddMMyyyy);
 		LocalDateTime day1 = d1.atTime(23, 0, 0);
 		LocalDateTime day2 = d2.atTime(23, 0, 0);
 
@@ -114,7 +117,8 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		insertLogShcTmp(day1, day2, pCreated_User, pSett_Code);
 
 		// 10) Gọi DATA_TO_ECOM (nếu đã có procedure tương ứng trên TiDB, dùng CALL)
-		callDataToEcom(pQRY_FROM_DATE, pQRY_TO_DATE);
+		
+		callDataToEcom(fromddMMyyyy, toddMMyyyy);
 
 		long t1 = System.currentTimeMillis();
 		Duration dur = Duration.ofMillis(t1 - t0);

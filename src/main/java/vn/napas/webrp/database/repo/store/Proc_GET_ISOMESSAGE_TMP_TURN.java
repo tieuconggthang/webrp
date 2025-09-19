@@ -2,6 +2,9 @@ package vn.napas.webrp.database.repo.store;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.database.repo.sql.DbLoggerRepository;
+import vn.napas.webrp.report.util.SqlLogUtils;
+
+import java.util.Map;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -199,6 +202,8 @@ public class Proc_GET_ISOMESSAGE_TMP_TURN {
             "  AND (TRACE_NO REGEXP '^[0-9]+$')";
 
         try {
+        	
+        	SqlLogUtils.renderSql(sql, Map.of("STT", iSTT));
             int rows = jdbc.update(sql, iSTT);
             dblog.end(module, "End Insert From ISOMESSAGE_TMP_TURN to SHCLOG_SETT_IBFT. rows=" + rows);
             return rows;

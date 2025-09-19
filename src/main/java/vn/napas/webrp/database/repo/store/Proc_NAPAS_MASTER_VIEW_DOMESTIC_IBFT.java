@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-class Proc_NAPAS_MASTER_VIEW_DOMESTIC_IBFT {
+public class Proc_NAPAS_MASTER_VIEW_DOMESTIC_IBFT {
     private final NamedParameterJdbcTemplate jdbc;
 
     private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
