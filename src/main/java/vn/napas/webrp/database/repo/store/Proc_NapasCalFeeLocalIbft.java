@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.database.repo.sql.DbLoggerRepository;
 import vn.napas.webrp.noti.SmsNotifier;
+import vn.napas.webrp.report.util.SqlLogUtils;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -194,6 +195,7 @@ public class Proc_NapasCalFeeLocalIbft {
 		try {
 			// 2) UPDATE phí (port từ MERGE WHEN MATCHED THEN UPDATE)
 			MapSqlParameterSource params = new MapSqlParameterSource().addValue("TuTG", tuTg);
+			log.info(SqlLogUtils.renderSql(SQL_UPDATE_FEE, params.getValues()));
 			affectedRows = jdbc.update(SQL_UPDATE_FEE, params);
 
 			// 3) Log SUCCESS
@@ -208,7 +210,7 @@ public class Proc_NapasCalFeeLocalIbft {
 			MapSqlParameterSource p2 = new MapSqlParameterSource().addValue("logId", logId).addValue("TuTG", tuTg)
 					.addValue("numrow", affectedRows).addValue("processtimeSec", seconds);
 			jdbc.update(SQL_RP_LOG_FEE, p2);
-
+			log.info(SqlLogUtils.renderSql(SQL_RP_LOG_FEE, p2.getValues()));
 			return affectedRows;
 		} catch (Exception ex) {
 			// 5) Log ERROR

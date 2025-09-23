@@ -121,16 +121,17 @@ public class IBFTSynChronize {
 			truncateTable(TableConstant.ZEN_CONFIG_FEE_IBFT);
 			// 31
 			summaryFEE_KEY(localDate, 1);
-			// 32 type name = new type();
+			//32
+			MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDate);
+			// 33 type name = new type();
 			NAPAS_CAL_FEE_LOCAL_IBFT(localDate);
-			// 33
-			checkSpecCharInTrans();
 			// 34
-			checkTCNUll();
+			checkSpecCharInTrans();
 			// 35
-			NAPAS_SHC_TMP_DOMESTIC_IBFT(localDate, localDate, "java", 0);
+			checkTCNUll();
 			// 36
-
+			NAPAS_SHC_TMP_DOMESTIC_IBFT(localDate, localDate, "java", 0);
+			// 37
 			NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDate, localDate, "java");
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);

@@ -4,6 +4,8 @@ package vn.napas.webrp.database.repo.sql;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.report.util.SqlLogUtils;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -162,6 +164,8 @@ public class ShclogSettIbftSqlBatch {
     public int maskFeeTransactionAll() {
         long start = System.currentTimeMillis();
         try {
+//        	SqlLogUtils.renderSql(SQL_UPDATE_ALL, new ma);
+        	log.info("Sql: " + SQL_UPDATE_ALL);
             int updated = jdbc.update(SQL_UPDATE_ALL, new MapSqlParameterSource());
             log.info("recalcAll() updated {} rows in {} ms", updated, (System.currentTimeMillis() - start));
             return updated;

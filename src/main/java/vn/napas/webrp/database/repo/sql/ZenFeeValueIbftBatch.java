@@ -2,6 +2,8 @@ package vn.napas.webrp.database.repo.sql;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.report.util.SqlLogUtils;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.Objects;
 
 @Repository
@@ -20,35 +23,35 @@ public class ZenFeeValueIbftBatch {
 	private final NamedParameterJdbcTemplate jdbc;
 
 	// Chỉ 1 câu lệnh duy nhất (Oracle -> TiDB/MySQL)
+	// --- ACQUIRER: không GROUP BY, DISTINCT, ép bỏ phần thập phân ---
 	private static final String SQL_INSERT_ACQUIRER = """
-			INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
-			SELECT
-			  'ACQUIRER' AS ZEN_TYPE,
-			  IFNULL(ACQUIRER_FE, ACQUIRER) AS ZEN_VALUE
-			FROM SHCLOG_SETT_IBFT
-			WHERE DATE(SETTLEMENT_DATE) = :settlementDate
-			  AND msgtype = 210
-			  AND respcode = 0
-			  AND isrev IS NULL
-			  AND (
-			      (
-			        (
-			          (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
-			           AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
-			          )
-			          OR
-			          (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
-			        )
-			        AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
-			      )
-			      OR
-			      (
-			        FROM_SYS IS NOT NULL
-			        AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('01','42','91')
-			      )
-			  )
-			GROUP BY IFNULL(ACQUIRER_FE, ACQUIRER)
-			""";
+	    INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
+	    SELECT DISTINCT
+	      'ACQUIRER' AS ZEN_TYPE,
+	      CAST(CAST(IFNULL(ACQUIRER_FE, ACQUIRER) AS DECIMAL(38,0)) AS CHAR) AS ZEN_VALUE
+	      --  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	      --  ép số -> DECIMAL(38,0) (không phần thập phân) -> rồi ép sang CHAR
+	    FROM SHCLOG_SETT_IBFT
+	    WHERE DATE(SETTLEMENT_DATE) = :settlementDate
+	      AND msgtype = 210
+	      AND respcode = 0
+	      AND isrev IS NULL
+	      AND (
+	           (
+	             (
+	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
+	               AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
+	             )
+	             OR (SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
+	           )
+	           AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
+	         )
+	         OR (
+	           FROM_SYS IS NOT NULL
+	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+	         )
+	    """;
+
 
 	/**
 	 * Chạy đúng một câu INSERT…SELECT theo logic gốc 22.stt_100100400210.sql.
@@ -62,6 +65,7 @@ public class ZenFeeValueIbftBatch {
 		try {
 			MapSqlParameterSource p = new MapSqlParameterSource().addValue("settlementDate",
 					Date.valueOf(settlementDate)); // dùng DATE() ở SQL
+			log.info("SQL: {}", SqlLogUtils.renderSql(SQL_INSERT_ACQUIRER, p.getValues()));
 			int rows = jdbc.update(SQL_INSERT_ACQUIRER, p);
 			log.info("insertAcquirer(date={}): {} rows in {} ms", settlementDate, rows,
 					System.currentTimeMillis() - t0);
@@ -72,36 +76,33 @@ public class ZenFeeValueIbftBatch {
 		}
 	}
 
-	// --- ISSUER: chỉ 1 câu lệnh duy nhất ---
+	// --- ISSUER: không GROUP BY, DISTINCT, ép bỏ phần thập phân ---
 	private static final String SQL_INSERT_ISSUER = """
-			INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
-			SELECT
-			  'ISSUER' AS ZEN_TYPE,
-			  IFNULL(ISSUER_FE, ISSUER) AS ZEN_VALUE
-			FROM SHCLOG_SETT_IBFT
-			WHERE DATE(SETTLEMENT_DATE) = :settlementDate
-			  AND msgtype = 210
-			  AND respcode = 0
-			  AND isrev IS NULL
-			  AND (
-			      (
-			        (
-			          (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
-			           AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
-			          )
-			          OR
-			          (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
-			        )
-			        AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
-			      )
-			      OR
-			      (
-			        FROM_SYS IS NOT NULL
-			        AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('01','42','91')
-			      )
-			  )
-			GROUP BY IFNULL(ISSUER_FE, ISSUER)
-			""";
+	    INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
+	    SELECT DISTINCT
+	      'ISSUER' AS ZEN_TYPE,
+	      CAST(CAST(IFNULL(ISSUER_FE, ISSUER) AS DECIMAL(38,0)) AS CHAR) AS ZEN_VALUE
+	    FROM SHCLOG_SETT_IBFT
+	    WHERE DATE(SETTLEMENT_DATE) = :settlementDate
+	      AND msgtype = 210
+	      AND respcode = 0
+	      AND isrev IS NULL
+	      AND (
+	           (
+	             (
+	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
+	               AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
+	             )
+	             OR (SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
+	           )
+	           AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
+	         )
+	         OR (
+	           FROM_SYS IS NOT NULL
+	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+	         )
+	    """;
+
 
 	/**
 	 * Chạy đúng một câu INSERT…SELECT theo logic gốc 23.stt_100100400215.sql.
@@ -115,6 +116,7 @@ public class ZenFeeValueIbftBatch {
 		try {
 			MapSqlParameterSource p = new MapSqlParameterSource().addValue("settlementDate",
 					java.sql.Date.valueOf(settlementDate));
+			log.info("SQL: {}", SqlLogUtils.renderSql(SQL_INSERT_ISSUER, p.getValues()));
 			int rows = jdbc.update(SQL_INSERT_ISSUER, p);
 			log.info("insertIssuer(date={}): {} rows in {} ms", settlementDate, rows, System.currentTimeMillis() - t0);
 			return rows;
@@ -124,87 +126,124 @@ public class ZenFeeValueIbftBatch {
 		}
 	}
 
-	// === MERCHANT_TYPE: 1 câu lệnh duy nhất (Oracle -> TiDB/MySQL) ===
+	// === MERCHANT_TYPE: Oracle -> TiDB/MySQL (không dùng GROUP BY, tránh
+	// ONLY_FULL_GROUP_BY) ===
+//	private static final String SQL_INSERT_MERCHANT_TYPE = """
+//	    INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
+//	    SELECT DISTINCT
+//	      'MERCHANT_TYPE' AS ZEN_TYPE,
+//	      ZEN_VALUE
+//	    FROM (
+//	      SELECT
+//	        CASE
+//	          WHEN TRAN_CASE = '72|C3' THEN 6011
+//	          WHEN Pcode2 IN (890000,880000,720000,730000) THEN 0
+//	          WHEN Pcode2 IN (840000,968400,978400,988400,998400) THEN Merchant_type
+//	          WHEN SUBSTR(LPAD(CAST(PCODE2 AS CHAR), 6, '0'), 1, 2) IN ('98','99')
+//	               AND SUBSTR(LPAD(CAST(PCODE  AS CHAR), 6, '0'), 1, 2) = '30'
+//	               AND Merchant_type = 6012
+//	            THEN Merchant_type
+//	          WHEN Pcode2 IN (
+//	                 960000,970000,980000,990000,968500,978500,988500,998500,
+//	                 967700,977700,987700,997700,967500,977500,987500,997500,
+//	                 967600,977600,987600,997600,967800,977800,987800,997800,
+//	                 967900,977900,987900,997900,966100,976100,986100,996100,
+//	                 966200,976200,986200,996200
+//	               )
+//	               AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','20')
+//	               AND MERCHANT_TYPE_ORIG IN (
+//	                 SELECT MERCHANT_TYPE
+//	                 FROM GR_FEE_CONFIG_NEW
+//	                 WHERE NOW() BETWEEN VALID_FROM AND VALID_TO
+//	                   AND SUBSTR(PRO_CODE, 3, 2) = SUBSTR(LPAD(CAST(PCODE2 AS CHAR), 6, '0'), 1, 2)
+//	               )
+//	            THEN MERCHANT_TYPE_ORIG
+//	          WHEN SUBSTR(LPAD(CAST(IFNULL(PCODE2,0) AS CHAR), 6, '0'), 1, 2) NOT IN ('96','97','98','99')
+//	               AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','20')
+//	               AND MERCHANT_TYPE_ORIG IN (4111, 4131, 5172, 9211, 9222, 9223, 9311, 9399, 8398, 7523, 7524)
+//	            THEN MERCHANT_TYPE_ORIG
+//	          ELSE Merchant_type
+//	        END AS ZEN_VALUE
+//	      FROM SHCLOG_SETT_IBFT
+//	      WHERE DATE(SETTLEMENT_DATE) = :settlementDate
+//	        AND msgtype = 210
+//	        AND respcode = 0
+//	        AND isrev IS NULL
+//	        AND (
+//	             (
+//	               (
+//	                 SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20','03')
+//	                 AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
+//	               )
+//	               OR (SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
+//	             )
+//	             AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
+//	           )
+//	           OR (
+//	             FROM_SYS IS NOT NULL
+//	             AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+//	           )
+//	    ) t
+//	    """;
+
+	// === MERCHANT_TYPE: Oracle -> TiDB/MySQL (1 tham số ngày) ===
+	// === MERCHANT_TYPE: Oracle -> TiDB/MySQL (1 tham số ngày, bỏ phần thập phân) ===
 	private static final String SQL_INSERT_MERCHANT_TYPE = """
-			INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
-			SELECT
-			  'MERCHANT_TYPE' AS ZEN_TYPE,
-			  CASE
-			    WHEN TRAN_CASE = '72|C3' THEN 6011
-			    WHEN Pcode2 IN (890000,880000,720000,730000) THEN 0
-			    WHEN Pcode2 IN (840000,968400,978400,988400,998400) THEN Merchant_type
-			    WHEN SUBSTR(TRIM(LPAD(CAST(PCODE2 AS CHAR), 6, '0')), 1, 2) IN ('98','99')
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE  AS CHAR), 6, '0')), 1, 2) = '30'
-			         AND Merchant_type = 6012
-			      THEN Merchant_type
-			    WHEN Pcode2 IN (960000,970000,980000,990000,968500,978500,988500,998500,967700,977700,987700,997700,
-			                    967500,977500,987500,997500,967600,977600,987600,997600,
-			                    967800,977800,987800,997800,967900,977900,987900,997900,
-			                    966100,976100,986100,996100,966200,976200,986200,996200)
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','20')
-			         AND MERCHANT_TYPE_ORIG IN (
-			               SELECT MERCHANT_TYPE
-			               FROM GR_FEE_CONFIG_NEW
-			               WHERE NOW() BETWEEN VALID_FROM AND VALID_TO
-			                 AND SUBSTR(PRO_CODE, 3, 2) = SUBSTR(TRIM(LPAD(CAST(PCODE2 AS CHAR), 6, '0')), 1, 2)
-			         )
-			      THEN MERCHANT_TYPE_ORIG
-			    WHEN SUBSTR(CAST(IFNULL(PCODE2,0) AS CHAR), 1, 2) NOT IN ('96','97','98','99')
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','20')
-			         AND MERCHANT_TYPE_ORIG IN (4111, 4131, 5172, 9211, 9222, 9223, 9311, 9399, 8398, 7523, 7524)
-			      THEN MERCHANT_TYPE_ORIG
-			    ELSE Merchant_type
-			  END AS ZEN_VALUE
-			FROM SHCLOG_SETT_IBFT
-			WHERE DATE(SETTLEMENT_DATE) = :settlementDate
-			  AND msgtype = 210
-			  AND respcode = 0
-			  AND isrev IS NULL
-			  AND (
-			       (
-			         (
-			           (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20','03')
-			            AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
-			           )
-			           OR
-			           (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
-			         )
-			         AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
-			       )
-			       OR
-			       (
-			         FROM_SYS IS NOT NULL
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('01','42','91')
-			       )
-			  )
-			GROUP BY
-			  CASE
-			    WHEN TRAN_CASE = '72|C3' THEN 6011
-			    WHEN Pcode2 IN (890000,880000,720000,730000) THEN 0
-			    WHEN Pcode2 IN (840000,968400,978400,988400,998400) THEN Merchant_type
-			    WHEN SUBSTR(TRIM(LPAD(CAST(PCODE2 AS CHAR), 6, '0')), 1, 2) IN ('98','99')
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE  AS CHAR), 6, '0')), 1, 2) = '30'
-			         AND Merchant_type = 6012
-			      THEN Merchant_type
-			    WHEN Pcode2 IN (960000,970000,980000,990000,968500,978500,988500,998500,967700,977700,987700,997700,
-			                    967500,977500,987500,997500,967600,977600,987600,997600,
-			                    967800,977800,987800,997800,967900,977900,987900,997900,
-			                    966100,976100,986100,996100,966200,976200,986200,996200)
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','20')
-			         AND MERCHANT_TYPE_ORIG IN (
-			               SELECT MERCHANT_TYPE
-			               FROM GR_FEE_CONFIG_NEW
-			               WHERE NOW() BETWEEN VALID_FROM AND VALID_TO
-			                 AND SUBSTR(PRO_CODE, 3, 2) = SUBSTR(TRIM(LPAD(CAST(PCODE2 AS CHAR), 6, '0')), 1, 2)
-			         )
-			      THEN MERCHANT_TYPE_ORIG
-			    WHEN SUBSTR(CAST(IFNULL(PCODE2,0) AS CHAR), 1, 2) NOT IN ('96','97','98','99')
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('00','20')
-			         AND MERCHANT_TYPE_ORIG IN (4111, 4131, 5172, 9211, 9222, 9223, 9311, 9399, 8398, 7523, 7524)
-			      THEN MERCHANT_TYPE_ORIG
-			    ELSE Merchant_type
-			  END
-			""";
+	    INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
+	    SELECT DISTINCT
+	      'MERCHANT_TYPE' AS ZEN_TYPE,
+	      CAST(CAST((
+	        CASE
+	          WHEN TRAN_CASE = '72|C3' THEN 6011
+	          WHEN Pcode2 IN (890000,880000,720000,730000) THEN 0
+	          WHEN Pcode2 IN (840000,968400,978400,988400,998400) THEN Merchant_type
+	          WHEN SUBSTR(LPAD(CAST(PCODE2 AS CHAR), 6, '0'), 1, 2) IN ('98','99')
+	               AND SUBSTR(LPAD(CAST(PCODE  AS CHAR), 6, '0'), 1, 2) = '30'
+	               AND Merchant_type = 6012
+	            THEN Merchant_type
+	          WHEN Pcode2 IN (
+	                 960000,970000,980000,990000,968500,978500,988500,998500,
+	                 967700,977700,987700,997700,967500,977500,987500,997500,
+	                 967600,977600,987600,997600,967800,977800,987800,997800,
+	                 967900,977900,987900,997900,966100,976100,986100,996100,
+	                 966200,976200,986200,996200
+	               )
+	               AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','20')
+	               AND MERCHANT_TYPE_ORIG IN (
+	                 SELECT MERCHANT_TYPE
+	                 FROM GR_FEE_CONFIG_NEW
+	                 WHERE NOW() BETWEEN VALID_FROM AND VALID_TO
+	                   AND SUBSTR(PRO_CODE, 3, 2) = SUBSTR(LPAD(CAST(PCODE2 AS CHAR), 6, '0'), 1, 2)
+	               )
+	            THEN MERCHANT_TYPE_ORIG
+	          WHEN SUBSTR(LPAD(CAST(IFNULL(PCODE2,0) AS CHAR), 6, '0'), 1, 2) NOT IN ('96','97','98','99')
+	               AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','20')
+	               AND MERCHANT_TYPE_ORIG IN (4111, 4131, 5172, 9211, 9222, 9223, 9311, 9399, 8398, 7523, 7524)
+	            THEN MERCHANT_TYPE_ORIG
+	          ELSE Merchant_type
+	        END
+	      ) AS DECIMAL(38,0)) AS CHAR) AS ZEN_VALUE
+	    FROM SHCLOG_SETT_IBFT
+	    WHERE DATE(SETTLEMENT_DATE) = :settlementDate
+	      AND msgtype = 210
+	      AND respcode = 0
+	      AND isrev IS NULL
+	      AND (
+	           (
+	             (
+	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20','03')
+	               AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
+	             )
+	             OR (SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
+	           )
+	           AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
+	         )
+	         OR (
+	           FROM_SYS IS NOT NULL
+	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+	         )
+	    """;
+
 
 	/**
 	 * Chèn ZEN_TYPE='MERCHANT_TYPE' theo đúng logic gốc cho 1 ngày settlement.
@@ -216,6 +255,7 @@ public class ZenFeeValueIbftBatch {
 		try {
 			MapSqlParameterSource p = new MapSqlParameterSource().addValue("settlementDate",
 					Date.valueOf(settlementDate));
+			log.info("SQL: {}", SqlLogUtils.renderSql(SQL_INSERT_ACQUIRER, p.getValues()));
 			int rows = jdbc.update(SQL_INSERT_MERCHANT_TYPE, p);
 			log.info("insertMerchantType(date={}): {} rows in {} ms", settlementDate, rows,
 					System.currentTimeMillis() - t0);
@@ -226,46 +266,38 @@ public class ZenFeeValueIbftBatch {
 		}
 	}
 
-	// --- CURRENCY_CODE: 1 câu lệnh duy nhất (Oracle -> TiDB/MySQL) ---
+	// --- CURRENCY_CODE: Oracle -> TiDB/MySQL (không GROUP BY, ép chuỗi) ---
 	private static final String SQL_INSERT_CURRENCY_CODE = """
-			INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
-			SELECT
-			  'CURRENCY_CODE' AS ZEN_TYPE,
-			  CASE
-			    WHEN ACQ_CURRENCY_CODE IS NULL THEN 704
-			    WHEN ACQ_CURRENCY_CODE = 840  THEN 840
-			    ELSE 704
-			  END AS ZEN_VALUE
-			FROM SHCLOG_SETT_IBFT
-			WHERE DATE(SETTLEMENT_DATE) = :settlementDate
-			  AND msgtype = 210
-			  AND respcode = 0
-			  AND isrev IS NULL
-			  AND (
-			       (
-			         (
-			           (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2)
-			              IN ('00','01','30','35','40','41','42','43','48','20')
-			            AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
-			           )
-			           OR
-			           (SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
-			         )
-			         AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
-			       )
-			       OR
-			       (
-			         FROM_SYS IS NOT NULL
-			         AND SUBSTR(TRIM(LPAD(CAST(PCODE AS CHAR), 6, '0')), 1, 2) IN ('01','42','91')
-			       )
-			  )
-			GROUP BY
-			  CASE
-			    WHEN ACQ_CURRENCY_CODE IS NULL THEN 704
-			    WHEN ACQ_CURRENCY_CODE = 840  THEN 840
-			    ELSE 704
-			  END
-			""";
+	    INSERT INTO ZEN_FEE_VALUE_IBFT (ZEN_TYPE, ZEN_VALUE)
+	    SELECT DISTINCT
+	      'CURRENCY_CODE' AS ZEN_TYPE,
+	      CASE
+	        WHEN ACQ_CURRENCY_CODE IS NULL THEN '704'
+	        WHEN ACQ_CURRENCY_CODE = 840  THEN '840'
+	        ELSE '704'
+	      END AS ZEN_VALUE
+	    FROM SHCLOG_SETT_IBFT
+	    WHERE DATE(SETTLEMENT_DATE) = :settlementDate
+	      AND msgtype = 210
+	      AND respcode = 0
+	      AND isrev IS NULL
+	      AND (
+	           (
+	             (
+	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2)
+	                 IN ('00','01','30','35','40','41','42','43','48','20')
+	               AND IFNULL(MSGTYPE_DETAIL, 'NA') NOT IN ('VPREC')
+	             )
+	             OR (SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) = '94' AND MERCHANT_TYPE = 6011)
+	           )
+	           AND IFNULL(FROM_SYS, 'IST') LIKE '%IST%'
+	         )
+	         OR (
+	           FROM_SYS IS NOT NULL
+	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+	         )
+	    """;
+
 
 	/**
 	 * Chèn ZEN_TYPE='CURRENCY_CODE' theo logic gốc cho 1 ngày settlement
@@ -277,6 +309,7 @@ public class ZenFeeValueIbftBatch {
 		try {
 			MapSqlParameterSource p = new MapSqlParameterSource().addValue("settlementDate",
 					Date.valueOf(settlementDate));
+			log.info("sql: {}", SqlLogUtils.renderSql(SQL_INSERT_CURRENCY_CODE, p.getValues()));
 			int rows = jdbc.update(SQL_INSERT_CURRENCY_CODE, p);
 			log.info("insertCurrencyCode(date={}): {} rows in {} ms", settlementDate, rows,
 					System.currentTimeMillis() - t0);
@@ -298,37 +331,118 @@ public class ZenFeeValueIbftBatch {
 			    FROM (
 			        SELECT
 			            A.FEE_KEY,
-			            CONCAT(B.ZEN_VALUE, C.ZEN_VALUE, D.ZEN_VALUE, E.ZEN_VALUE, F.ZEN_VALUE) AS FEE_VALUE,
+			            CONCAT_WS('-', B.ZEN_VALUE, C.ZEN_VALUE, D.ZEN_VALUE, E.ZEN_VALUE, F.ZEN_VALUE) AS FEE_VALUE,
 			            CASE
-			                WHEN A.ACQUIRER = B.ZEN_VALUE AND A.ISSUER = C.ZEN_VALUE THEN 1
-			                WHEN A.ISSUER = C.ZEN_VALUE AND A.ACQUIRER = 0       THEN 3
-			                WHEN A.ISSUER = 0        AND A.ACQUIRER = B.ZEN_VALUE THEN 3
-			                WHEN A.ISSUER = C.ZEN_VALUE AND A.ACQUIRER <> B.ZEN_VALUE THEN 5 + A.ORDER_CONFIG
-			                WHEN A.ISSUER <> C.ZEN_VALUE AND A.ACQUIRER = B.ZEN_VALUE THEN 5 + A.ORDER_CONFIG
-			                WHEN A.ISSUER <> C.ZEN_VALUE AND A.ACQUIRER <> B.ZEN_VALUE THEN 10
+			                WHEN A.ACQUIRER = B.ZEN_VALUE_NUM AND A.ISSUER = C.ZEN_VALUE_NUM THEN 1
+			                WHEN A.ISSUER   = C.ZEN_VALUE_NUM AND A.ACQUIRER = 0            THEN 3
+			                WHEN A.ISSUER   = 0            AND A.ACQUIRER = B.ZEN_VALUE_NUM THEN 3
+			                WHEN A.ISSUER   = C.ZEN_VALUE_NUM AND A.ACQUIRER <> B.ZEN_VALUE_NUM THEN 5 + A.ORDER_CONFIG
+			                WHEN A.ISSUER  <> C.ZEN_VALUE_NUM AND A.ACQUIRER =  B.ZEN_VALUE_NUM THEN 5 + A.ORDER_CONFIG
+			                WHEN A.ISSUER  <> C.ZEN_VALUE_NUM AND A.ACQUIRER <> B.ZEN_VALUE_NUM THEN 10
 			            END AS FEE_ORDER
 			        FROM (
-			            SELECT FEE_KEY, ISSUER, ACQUIRER, PRO_CODE, CURRENCY_CODE, MERCHANT_TYPE, ORDER_CONFIG
+			            SELECT
+			                FEE_KEY,
+			                ISSUER,          -- DECIMAL
+			                ACQUIRER,        -- DECIMAL
+			                PRO_CODE,        -- VARCHAR
+			                CURRENCY_CODE,   -- DECIMAL
+			                MERCHANT_TYPE,   -- DECIMAL
+			                ORDER_CONFIG     -- DECIMAL
 			            FROM Gr_Fee_Config_New
 			            WHERE :p_date BETWEEN VALID_FROM AND VALID_TO
 			        ) A
-			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'ACQUIRER') B
-			            ON (IF(A.ACQUIRER = 0, B.ZEN_VALUE, A.ACQUIRER) = B.ZEN_VALUE)
-			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'ISSUER') C
-			            ON (IF(A.ISSUER = 0, C.ZEN_VALUE, A.ISSUER) = C.ZEN_VALUE)
-			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'CURRENCY_CODE') D
-			            ON (A.CURRENCY_CODE = D.ZEN_VALUE)
-			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'MERCHANT_TYPE') E
-			            ON (IF(A.MERCHANT_TYPE = 0, E.ZEN_VALUE, A.MERCHANT_TYPE) = E.ZEN_VALUE)
-			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'PCODE') F
-			            ON (A.PRO_CODE = F.ZEN_VALUE)
+
+			        /* ACQUIRER */
+			        INNER JOIN (
+			            SELECT ZEN_VALUE, CAST(ZEN_VALUE AS UNSIGNED) AS ZEN_VALUE_NUM
+			            FROM ZEN_FEE_VALUE_IBFT
+			            WHERE ZEN_TYPE = 'ACQUIRER' AND ZEN_VALUE REGEXP '^[0-9]+$'
+			        ) B
+			          ON (CASE WHEN A.ACQUIRER = 0 THEN B.ZEN_VALUE_NUM ELSE A.ACQUIRER END) = B.ZEN_VALUE_NUM
+
+			        /* ISSUER */
+			        INNER JOIN (
+			            SELECT ZEN_VALUE, CAST(ZEN_VALUE AS UNSIGNED) AS ZEN_VALUE_NUM
+			            FROM ZEN_FEE_VALUE_IBFT
+			            WHERE ZEN_TYPE = 'ISSUER' AND ZEN_VALUE REGEXP '^[0-9]+$'
+			        ) C
+			          ON (CASE WHEN A.ISSUER = 0 THEN C.ZEN_VALUE_NUM ELSE A.ISSUER END) = C.ZEN_VALUE_NUM
+
+			        /* CURRENCY_CODE */
+			        INNER JOIN (
+			            SELECT ZEN_VALUE, CAST(ZEN_VALUE AS UNSIGNED) AS ZEN_VALUE_NUM
+			            FROM ZEN_FEE_VALUE_IBFT
+			            WHERE ZEN_TYPE = 'CURRENCY_CODE' AND ZEN_VALUE REGEXP '^[0-9]+$'
+			        ) D
+			          ON A.CURRENCY_CODE = D.ZEN_VALUE_NUM
+
+			        /* MERCHANT_TYPE */
+			        INNER JOIN (
+			            SELECT ZEN_VALUE, CAST(ZEN_VALUE AS UNSIGNED) AS ZEN_VALUE_NUM
+			            FROM ZEN_FEE_VALUE_IBFT
+			            WHERE ZEN_TYPE = 'MERCHANT_TYPE' AND ZEN_VALUE REGEXP '^[0-9]+$'
+			        ) E
+			          ON (CASE WHEN A.MERCHANT_TYPE = 0 THEN E.ZEN_VALUE_NUM ELSE A.MERCHANT_TYPE END) = E.ZEN_VALUE_NUM
+
+			        /* PCODE (để nguyên dạng VARCHAR) */
+			        INNER JOIN (
+			            SELECT ZEN_VALUE
+			            FROM ZEN_FEE_VALUE_IBFT
+			            WHERE ZEN_TYPE = 'PCODE'
+			        ) F
+			          ON A.PRO_CODE = F.ZEN_VALUE
 			    ) X
 			) Y
-			WHERE FEE_ORDER = :p_fee_order
+			WHERE FEE_ORDER = CAST(:p_fee_order AS UNSIGNED)
 			""";
+
+
+
+	
+//	private static final String insertConfigFeeIbftSql = """
+//			INSERT INTO ZEN_CONFIG_FEE_IBFT (FEE_KEY, FEE_VALUE, FEE_ORDER, FEE_DATE)
+//			SELECT FEE_KEY, FEE_VALUE, FEE_ORDER, NOW()
+//			FROM (
+//			    SELECT
+//			        FEE_KEY,
+//			        FEE_VALUE,
+//			        RANK() OVER (PARTITION BY FEE_VALUE ORDER BY FEE_ORDER) AS FEE_ORDER
+//			    FROM (
+//			        SELECT
+//			            A.FEE_KEY,
+//			            CONCAT(B.ZEN_VALUE, C.ZEN_VALUE, D.ZEN_VALUE, E.ZEN_VALUE, F.ZEN_VALUE) AS FEE_VALUE,
+//			            CASE
+//			                WHEN A.ACQUIRER = B.ZEN_VALUE AND A.ISSUER = C.ZEN_VALUE THEN 1
+//			                WHEN A.ISSUER = C.ZEN_VALUE AND A.ACQUIRER = 0       THEN 3
+//			                WHEN A.ISSUER = 0        AND A.ACQUIRER = B.ZEN_VALUE THEN 3
+//			                WHEN A.ISSUER = C.ZEN_VALUE AND A.ACQUIRER <> B.ZEN_VALUE THEN 5 + A.ORDER_CONFIG
+//			                WHEN A.ISSUER <> C.ZEN_VALUE AND A.ACQUIRER = B.ZEN_VALUE THEN 5 + A.ORDER_CONFIG
+//			                WHEN A.ISSUER <> C.ZEN_VALUE AND A.ACQUIRER <> B.ZEN_VALUE THEN 10
+//			            END AS FEE_ORDER
+//			        FROM (
+//			            SELECT FEE_KEY, ISSUER, ACQUIRER, PRO_CODE, CURRENCY_CODE, MERCHANT_TYPE, ORDER_CONFIG
+//			            FROM Gr_Fee_Config_New
+//			            WHERE :p_date BETWEEN VALID_FROM AND VALID_TO
+//			        ) A
+//			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'ACQUIRER') B
+//			            ON (IF(A.ACQUIRER = 0, B.ZEN_VALUE, A.ACQUIRER) = B.ZEN_VALUE)
+//			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'ISSUER') C
+//			            ON (IF(A.ISSUER = 0, C.ZEN_VALUE, A.ISSUER) = C.ZEN_VALUE)
+//			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'CURRENCY_CODE') D
+//			            ON (A.CURRENCY_CODE = D.ZEN_VALUE)
+//			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'MERCHANT_TYPE') E
+//			            ON (IF(A.MERCHANT_TYPE = 0, E.ZEN_VALUE, A.MERCHANT_TYPE) = E.ZEN_VALUE)
+//			        INNER JOIN (SELECT * FROM ZEN_FEE_VALUE_IBFT WHERE ZEN_TYPE = 'PCODE') F
+//			            ON (A.PRO_CODE = F.ZEN_VALUE)
+//			    ) X
+//			) Y
+//			WHERE FEE_ORDER = :p_fee_order
+//			""";
 
 	/**
 	 * 27.stt_100100400240.sl
+	 * 
 	 * @param processDate
 	 * @param feeOrder
 	 * @return
@@ -337,7 +451,7 @@ public class ZenFeeValueIbftBatch {
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue("p_date", processDate) // LocalDate sẽ tự
 																									// map sang DATE
 				.addValue("p_fee_order", feeOrder);
-
+		log.info(SqlLogUtils.renderSql(insertConfigFeeIbftSql, params.getValues()));
 		return jdbc.update(insertConfigFeeIbftSql, params);
 	}
 

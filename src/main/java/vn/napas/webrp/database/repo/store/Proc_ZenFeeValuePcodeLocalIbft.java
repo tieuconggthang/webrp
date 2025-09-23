@@ -1,18 +1,23 @@
 package vn.napas.webrp.database.repo.store;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.database.repo.sql.DbLoggerRepository;
 import vn.napas.webrp.noti.SmsNotifier;
+import vn.napas.webrp.report.util.SqlLogUtils;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import com.mysql.cj.log.Log;
 
 import java.sql.SQLException;
 import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class Proc_ZenFeeValuePcodeLocalIbft {
 
 	private final NamedParameterJdbcTemplate jdbc;
@@ -143,6 +148,7 @@ public class Proc_ZenFeeValuePcodeLocalIbft {
 			dbLog.begin(module, "Begin Zen Pcode value to SHCLOG_SETT_IBFT");
 			MapSqlParameterSource params = new MapSqlParameterSource().addValue("settlementDate",
 					settlementDate_ddMMyyyy);
+			log.info("SQL: {}",SqlLogUtils.renderSql(SQL_INSERT_VALUES, params.getValues()));
 			int result = jdbc.update(SQL_INSERT_VALUES, params);
 			dbLog.begin(module, "End Zen Pcode value to SHCLOG_SETT_IBFT");
 			return result;

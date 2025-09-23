@@ -2,6 +2,7 @@ package vn.napas.webrp.database.entities;
 
 import java.io.Serializable;
 import jakarta.persistence.*;
+import java.util.Date;
 
 
 /**
@@ -14,21 +15,50 @@ import jakarta.persistence.*;
 public class ErrEx implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	@EmbeddedId
-	private ErrExPK id;
+	@Id
+	@Column(name="err_ex_id")
+	private long errExId;
+
+	private byte critical;
+
+	@Column(name="ERR_CODE")
+	private String errCode;
 
 	@Column(name="ERR_DETAIL")
 	private String errDetail;
 
+	@Column(name="ERR_MODULE")
+	private String errModule;
+
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="ERR_TIME")
+	private Date errTime;
+
 	public ErrEx() {
 	}
 
-	public ErrExPK getId() {
-		return this.id;
+	public long getErrExId() {
+		return this.errExId;
 	}
 
-	public void setId(ErrExPK id) {
-		this.id = id;
+	public void setErrExId(long errExId) {
+		this.errExId = errExId;
+	}
+
+	public byte getCritical() {
+		return this.critical;
+	}
+
+	public void setCritical(byte critical) {
+		this.critical = critical;
+	}
+
+	public String getErrCode() {
+		return this.errCode;
+	}
+
+	public void setErrCode(String errCode) {
+		this.errCode = errCode;
 	}
 
 	public String getErrDetail() {
@@ -37,6 +67,22 @@ public class ErrEx implements Serializable {
 
 	public void setErrDetail(String errDetail) {
 		this.errDetail = errDetail;
+	}
+
+	public String getErrModule() {
+		return this.errModule;
+	}
+
+	public void setErrModule(String errModule) {
+		this.errModule = errModule;
+	}
+
+	public Date getErrTime() {
+		return this.errTime;
+	}
+
+	public void setErrTime(Date errTime) {
+		this.errTime = errTime;
 	}
 
 }
