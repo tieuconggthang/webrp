@@ -5,6 +5,7 @@ package vn.napas.webrp.database.repo.store;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.database.repo.sql.DbLoggerRepository;
+import vn.napas.webrp.report.util.SqlLogUtils;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -49,6 +50,7 @@ private final String module = "TC_NULL";
     @Transactional(propagation = Propagation.REQUIRED)
     public void runCheckTcNull() {
         try {
+        	log.info("Proc_CHECK_TC_NULL: {}", SQL_INSERT_DOUBLE);
             int affected = jdbc.update(SQL_INSERT_DOUBLE, module);
 
             if (affected != 0) {

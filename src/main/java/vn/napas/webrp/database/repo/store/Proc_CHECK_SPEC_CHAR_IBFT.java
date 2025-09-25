@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.database.repo.sql.DbLoggerRepository;
 import vn.napas.webrp.noti.SmsNotifier;
+import vn.napas.webrp.report.util.SqlLogUtils;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -105,6 +106,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 					     OR (CONTENT_FUND LIKE CONCAT('%', CHAR(93), '%') AND BB_BIN = 970430)
 					  )
 					""";
+			jdbc.update(insertCandidates, Map.of("module", module));
 			int num = jdbc.update(insertCandidates, Map.of("module", module));
 
 			if (num != 0) {
@@ -129,6 +131,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						  AND (t.ACCTNUM LIKE CONCAT('%', CHAR(9), '%')
 						       OR t.PAN LIKE CONCAT('%', CHAR(9), '%'))
 						""";
+				log.info("upAcctTab: {}", SqlLogUtils.renderSql(upAcctTab, Map.of("module", module)));
 				jdbc.update(upAcctTab, Map.of("module", module));
 
 				// 2.2 acctnum: thay LF bằng space
@@ -143,6 +146,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						  AND (t.ACCTNUM LIKE CONCAT('%', CHAR(10), '%')
 						       OR t.PAN LIKE CONCAT('%', CHAR(10), '%'))
 						""";
+				log.info("upAcctLf: {}", SqlLogUtils.renderSql(upAcctLf, Map.of("module", module)));
 				jdbc.update(upAcctLf, Map.of("module", module));
 
 				// 2.3 acctnum: thay CR bằng space
@@ -157,6 +161,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						  AND (t.ACCTNUM LIKE CONCAT('%', CHAR(13), '%')
 						       OR t.PAN LIKE CONCAT('%', CHAR(13), '%'))
 						""";
+				log.info("upAcctCr: {}", SqlLogUtils.renderSql(upAcctCr, Map.of("module", module)));
 				jdbc.update(upAcctCr, Map.of("module", module));
 
 				// 2.4 content_fund: thay dấu nháy đơn ' (ASCII 39) bằng space
@@ -170,6 +175,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						WHERE t.MSGTYPE = 210
 						  AND t.CONTENT_FUND LIKE CONCAT('%', CHAR(39), '%')
 						""";
+				log.info("upCfApos: {}", SqlLogUtils.renderSql(upCfApos, Map.of("module", module)));
 				jdbc.update(upCfApos, Map.of("module", module));
 
 				// 2.5 termloc: thay TAB bằng space
@@ -183,6 +189,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						WHERE t.MSGTYPE = 210
 						  AND t.TERMLOC LIKE CONCAT('%', CHAR(9), '%')
 						""";
+				log.info("upTermTab: {}", SqlLogUtils.renderSql(upTermTab, Map.of("module", module)));
 				jdbc.update(upTermTab, Map.of("module", module));
 
 				// 2.6 content_fund: thay ký tự ASCII 29 bằng space
@@ -196,6 +203,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						WHERE t.MSGTYPE = 210
 						  AND t.CONTENT_FUND LIKE CONCAT('%', CHAR(29), '%')
 						""";
+				log.info("upCfAscii29: {}", SqlLogUtils.renderSql(upCfAscii29, Map.of("module", module)));
 				jdbc.update(upCfAscii29, Map.of("module", module));
 
 				// 2.7 content_fund: thay dấu hỏi ? bằng space
@@ -209,6 +217,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						WHERE t.MSGTYPE = 210
 						  AND t.CONTENT_FUND LIKE '%?%'
 						""";
+				log.info("upCfQmark: {}", SqlLogUtils.renderSql(upCfQmark, Map.of("module", module)));
 				jdbc.update(upCfQmark, Map.of("module", module));
 
 				// 2.8 content_fund: thay [ (ASCII 91) bằng space, chỉ BB_BIN = 970430
@@ -223,6 +232,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						  AND t.BB_BIN = 970430
 						  AND t.CONTENT_FUND LIKE CONCAT('%', CHAR(91), '%')
 						""";
+				log.info("upCfLBracket: {}", SqlLogUtils.renderSql(upCfLBracket, Map.of("module", module)));
 				jdbc.update(upCfLBracket, Map.of("module", module));
 
 				// 2.9 content_fund: thay ] (ASCII 93) bằng space, chỉ BB_BIN = 970430
@@ -237,6 +247,7 @@ public class Proc_CHECK_SPEC_CHAR_IBFT {
 						  AND t.BB_BIN = 970430
 						  AND t.CONTENT_FUND LIKE CONCAT('%', CHAR(93), '%')
 						""";
+				log.info("upCfRBracket: {}", SqlLogUtils.renderSql(upCfRBracket, Map.of("module", module)));
 				jdbc.update(upCfRBracket, Map.of("module", module));
 
 				// 3) Kiểm tra đã có "CHECK_SPEC_CHAR_IST" (ERR_CODE=0) trong ngày chưa để chốt

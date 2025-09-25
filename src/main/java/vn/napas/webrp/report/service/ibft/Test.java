@@ -125,11 +125,11 @@ public class Test {
 		//33
 //		NAPAS_CAL_FEE_LOCAL_IBFT(localDateTest);
 //		// 34
-		checkSpecCharInTrans();
+//		checkSpecCharInTrans();
 //		// 35
 //		checkTCNUll();
 //		// 36
-//		NAPAS_SHC_TMP_DOMESTIC_IBFT(localDateTest, localDateTest, "java", 0);
+		NAPAS_SHC_TMP_DOMESTIC_IBFT(localDateTest, localDateTest, "java", 0);
 //		// 37
 //
 //		NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDateTest, localDateTest, "java");
@@ -422,7 +422,7 @@ public class Test {
 	 */
 	private void checkSpecCharInTrans() {
 		try {
-			log.info("Starting");
+			log.info("Starting checkSpecCharInTrans");
 			proc_CHECK_SPEC_CHAR_IBFT.runCheckSpecCharIbft();
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
@@ -437,7 +437,7 @@ public class Test {
 	 */
 	private void checkTCNUll() {
 		try {
-			log.info("Starting");
+			log.info("Starting checkTCNUll");
 			prTc_NULL.runCheckTcNull();
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
@@ -453,7 +453,7 @@ public class Test {
 	private void NAPAS_SHC_TMP_DOMESTIC_IBFT(LocalDate pQRY_FROM_DATE, LocalDate pQRY_TO_DATE, String user,
 			int settleCode) {
 		try {
-			log.info("Starting");
+			log.info("Starting NAPAS_SHC_TMP_DOMESTIC_IBFT");
 
 			proc_NAPAS_SHC_TMP_DOMESTIC_IBFT.run(pQRY_FROM_DATE, pQRY_TO_DATE, user, settleCode);
 		} catch (Exception e) {

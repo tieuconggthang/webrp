@@ -35,7 +35,7 @@ public class NapasMasterViewDomesticIbftService {
 
 // 3) Khối insert chính (skeleton – cần mở rộng thêm các block theo store gốc)
 			int n1 = repo.insertBlock_SuccessByRole(fromDate, toDate);
-																		// toDate);
+			log.info("insertBlock_SuccessByRole row insert: {}", n1)		;												// toDate);
 			int n2 = repo.insertBlock_ErrorAdjust(fromDate, toDate);
 			log.info("Inserted rows: success={}, errorAdjust={}", n1, n2);
 
