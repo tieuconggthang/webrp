@@ -190,6 +190,7 @@ BEGIN
         rl:= 'PAUSE';
         
     Else
+	--block insert
         dbms_output.put_line('shclog insert else');        
         -- 25-dec-2023: xu ly lai lay cac giao dich hoan tra va QTBS o bang SHCLOG
         INSERT  /*+APPEND*/  INTO SHCLOG_SETT_IBFT_ADJUST( MSGTYPE,PAN,PCODE,AMOUNT,SETTLEMENT_AMOUNT,cardholder_amount,PRE_CARDHOLDER_AMOUNT,ACQ_CURRENCY_CODE
@@ -421,6 +422,7 @@ BEGIN
     End If;
     
     commit;    
+	--block update 1`
     Update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_KEY = NAPAS_GET_FEE_KEY(Decode(ACQUIRER_FE,null,ACQUIRER,ACQUIRER_FE), Decode(ISSUER_FE,null,ISSUER,ISSUER_FE), 
                     Case 
@@ -526,6 +528,7 @@ BEGIN
     ;
     
     commit;
+	--block update 2 respcode In (110,112,113,114,115)
     Update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_IRF_ISS = NAPAS_FEE_OLD_TRAN(MSGTYPE,'IRF_ISS',NAPAS_GET_FEE_KEY(Decode(ACQUIRER_FE,null,ACQUIRER,ACQUIRER_FE), Decode(ISSUER_FE,null,ISSUER,ISSUER_FE), 
                     Case 
@@ -591,7 +594,7 @@ BEGIN
             Where Trunc(Valid_To) <= To_Date('20171001','yyyymmdd')
         )   
     ;
-    
+    --block update 3 respcode In (110,112,113,114,115) SETTLEMENT_DATE Between To_Date('20170701','yyyymmdd') And To_Date('20171001','yyyymmdd')   -- UTM phi moi 1/7/2017->1/10/2017
     Update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_IRF_ISS = NAPAS_FEE_OLD_TRAN(MSGTYPE,'IRF_ISS',Fee_Key,Decode(ACQUIRER_FE,null,ACQUIRER,ACQUIRER_FE), Decode(ISSUER_FE,null,ISSUER,ISSUER_FE),
                     ACQ_CURRENCY_CODE,Decode(ACQ_CURRENCY_CODE,418,SETTLEMENT_AMOUNT,AMOUNT),CARDHOLDER_CONV_RATE,TRACE),
@@ -617,6 +620,7 @@ BEGIN
     ;
     
     commit;
+	-- block update 4 respcode In (110,112,113,114,115)
     Update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_IRF_ISS = NAPAS_FEE_OLD_TRAN(MSGTYPE,'IRF_ISS',NAPAS_GET_FEE_KEY(Decode(ACQUIRER_FE,null,ACQUIRER,ACQUIRER_FE), Decode(ISSUER_FE,null,ISSUER,ISSUER_FE), 
                     Case 
@@ -687,7 +691,7 @@ BEGIN
     And FEE_SVF_ACQ = 0
     ;
     commit;
-    
+    -- block update 5
     update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_IRF_ISS= Case When FEE_IRF_ISS Is null then 0
                     Else
@@ -791,6 +795,7 @@ BEGIN
     COMMIT;
     
     --------------- hoind 17/04/2018 Loai bo ky tu dac biet ---------------------
+	-- block update 6 loai bo ky tu dac biet
     Update SHCLOG_SETT_IBFT_ADJUST
     Set CONTENT_FUND = replace(CONTENT_FUND,chr(9),'')
     Where  
@@ -802,6 +807,7 @@ BEGIN
             CONTENT_FUND like '%'||chr(13)||'%'
         )
     ;
+	-- block update 7 loai bo ky tu dac biet
     Update SHCLOG_SETT_IBFT_ADJUST
     Set CONTENT_FUND = replace(CONTENT_FUND,chr(10),'')
     Where  
@@ -813,6 +819,7 @@ BEGIN
             CONTENT_FUND like '%'||chr(13)||'%'
         )
     ;
+	-- block update 8
     Update SHCLOG_SETT_IBFT_ADJUST
     Set CONTENT_FUND = replace(CONTENT_FUND,chr(13),'')
     Where  
@@ -826,7 +833,7 @@ BEGIN
     ;
     
     -------------- hoind update Pcode_Orig cho gd C3-72 phuc vu sinh file BEN --------------------------
-    
+    -- block update 9
     Update SHCLOG_SETT_IBFT_ADJUST
     Set Pcode_Orig = '91'||CREATE_PCODE(ACQUIRER,PAN)||CREATE_PCODE(BB_BIN,SUBSTR (ACCTNUM,INSTR (ACCTNUM || '|', '|') + 1,LENGTH (ACCTNUM)))
     Where From_Sys = 'IST|IBT' And Tran_Case = 'C3|72';

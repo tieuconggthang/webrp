@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class FeeConfigRow {
     public String feeNote;
@@ -17,8 +18,8 @@ public class FeeConfigRow {
     public String proCode;
     public int currencyCode;
     public int merchantType;
-    public LocalDate validFrom;
-    public LocalDate validTo;
+    public LocalDateTime validFrom;
+    public LocalDateTime validTo;
     public String feeIssType;
     public BigDecimal feeIss;
     public BigDecimal feeAcq;
@@ -62,8 +63,8 @@ public class FeeConfigRow {
         r.proCode       = rs.getString("PRO_CODE");
         r.currencyCode  = rs.getInt("CURRENCY_CODE");
         r.merchantType  = rs.getInt("MERCHANT_TYPE");
-        r.validFrom     = rs.getObject("VALID_FROM", LocalDate.class);
-        r.validTo       = rs.getObject("VALID_TO", LocalDate.class);
+        r.validFrom     = rs.getObject("VALID_FROM", LocalDateTime.class);
+        r.validTo       = rs.getObject("VALID_TO", LocalDateTime.class);
         r.feeIssType    = rs.getString("FEE_ISS_TYPE");
         r.feeIss        = rs.getBigDecimal("FEE_ISS");
         r.feeAcq        = rs.getBigDecimal("FEE_ACQ");

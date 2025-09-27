@@ -2,11 +2,13 @@ package vn.napas.webrp.report.service.ibft;
 
 import org.springframework.stereotype.Service;
 
+import vn.napas.webrp.database.dto.FeeConfigRow;
 import vn.napas.webrp.database.repo.FeeCacheLoader;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,8 +57,8 @@ public class CachedFeeFunctionsService {
             int issuer,
             String proCode,
             int merchantType,
-            Integer currencyNullable,
-            LocalDate settDate,
+            int currencyNullable,
+            LocalDateTime settDate,
             long otrace
     ) {
         int currency = decodeCurrency(currencyNullable);
