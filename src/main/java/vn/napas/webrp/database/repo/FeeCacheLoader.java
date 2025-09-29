@@ -49,13 +49,20 @@ public class FeeCacheLoader {
     }
 
     private void loadFeeConfigs() {
-        String sql = """
-            SELECT FEE_KEY, ISSUER, ACQUIRER, PRO_CODE, MERCHANT_TYPE, CURRENCY_CODE,
-                   IFNULL(ORDER_CONFIG,0) ORDER_CONFIG, ACTIVE,
-                   DATE(VALID_FROM) VALID_FROM, DATE(VALID_TO) VALID_TO,
-                   FEE_NOTE
-            FROM GR_FEE_CONFIG_NEW
-            """;
+//        String sql = """
+//            SELECT FEE_KEY, ISSUER, ACQUIRER, PRO_CODE, MERCHANT_TYPE, CURRENCY_CODE,
+//                   IFNULL(ORDER_CONFIG,0) ORDER_CONFIG, ACTIVE,
+//                   DATE(VALID_FROM) VALID_FROM, DATE(VALID_TO) VALID_TO,
+//                   FEE_NOTE
+//            FROM GR_FEE_CONFIG_NEW
+//            """;
+    	
+    	
+      String sql = """
+      SELECT *
+      FROM GR_FEE_CONFIG_NEW
+      """;
+
         this.feeConfigs = jdbc.query(sql, (rs, rn) -> FeeConfigRow.from(rs));
     }
 

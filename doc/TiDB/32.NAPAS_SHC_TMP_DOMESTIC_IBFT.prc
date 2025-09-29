@@ -737,7 +737,7 @@ BEGIN
             End 
     Where Decode(RE_FEE,null,0,RE_FEE) = 1
     ;
-    
+    -- block update 6
     Update SHCLOG_SETT_IBFT_ADJUST 
     Set FEE_SVF_ISS = FEE_ISS + FEE_IRF_ISS
     Where Fee_Key In
@@ -747,6 +747,7 @@ BEGIN
     'A775AB95-CF99-411E-83CE-F42E5AB4F61B'  -- 48 cu
     );
     commit;
+	--block 6.1
     UPDATE SHCLOG_SETT_IBFT_ADJUST t
     SET    SVFISSNP = nvl(t.Fee_Svf_Iss, 0),
            IRFISSACQ = CASE
@@ -795,7 +796,7 @@ BEGIN
     COMMIT;
     
     --------------- hoind 17/04/2018 Loai bo ky tu dac biet ---------------------
-	-- block update 6 loai bo ky tu dac biet
+	-- block update 7 loai bo ky tu dac biet
     Update SHCLOG_SETT_IBFT_ADJUST
     Set CONTENT_FUND = replace(CONTENT_FUND,chr(9),'')
     Where  
@@ -819,7 +820,7 @@ BEGIN
             CONTENT_FUND like '%'||chr(13)||'%'
         )
     ;
-	-- block update 8
+	-- block update 7
     Update SHCLOG_SETT_IBFT_ADJUST
     Set CONTENT_FUND = replace(CONTENT_FUND,chr(13),'')
     Where  
@@ -833,7 +834,7 @@ BEGIN
     ;
     
     -------------- hoind update Pcode_Orig cho gd C3-72 phuc vu sinh file BEN --------------------------
-    -- block update 9
+    -- block update 8 Pcode_Orig cho gd C3-72 phuc vu sinh file BEN 
     Update SHCLOG_SETT_IBFT_ADJUST
     Set Pcode_Orig = '91'||CREATE_PCODE(ACQUIRER,PAN)||CREATE_PCODE(BB_BIN,SUBSTR (ACCTNUM,INSTR (ACCTNUM || '|', '|') + 1,LENGTH (ACCTNUM)))
     Where From_Sys = 'IST|IBT' And Tran_Case = 'C3|72';
@@ -857,6 +858,7 @@ BEGIN
         From RP_INSTITUTION
         Where Decode(BEN_72,null,0,BEN_72) = 1
     );
+	--block 9
     Update SHCLOG_SETT_IBFT_ADJUST
     Set FEE_IRF_ISS=0, FEE_SVF_ISS =0, FEE_IRF_BEN =0, FEE_SVF_BEN = 0,SVFISSNP =0 ,IRFISSACQ = 0,
     IRFISSBNB = 0,SVFACQNP= 0, IRFACQISS = 0,IRFACQBNB = 0, SVFBNBNP = 0, IRFBNBISS= 0, IRFBNBACQ = 0

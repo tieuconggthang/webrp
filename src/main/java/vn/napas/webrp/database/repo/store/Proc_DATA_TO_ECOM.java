@@ -64,8 +64,18 @@ public class Proc_DATA_TO_ECOM {
     }
 
     private int deleteBySwitchSettleDate(LocalDate switchDate) {
-        String sql = "DELETE FROM QR_ECOM_SUCC WHERE SWITCH_SETTLE_DATE = :d";
-        return jdbc.update(sql, new MapSqlParameterSource("d", java.sql.Date.valueOf(switchDate)));
+    	try {
+			log.info("deleteBySwitchSettleDate");
+		    String sql = "DELETE FROM QR_ECOM_SUCC WHERE SWITCH_SETTLE_DATE = :d";
+	        return jdbc.update(sql, new MapSqlParameterSource("d", java.sql.Date.valueOf(switchDate)));
+		} catch (Exception e) {
+			log.error("Exception " + e.getMessage(), e);
+			return 0;
+		} finally {
+
+		}
+
+    
     }
 
     private int insertFromShclogIntoEcom(LocalDate d1, LocalDate d2, LocalDate switchDateForInsert) {

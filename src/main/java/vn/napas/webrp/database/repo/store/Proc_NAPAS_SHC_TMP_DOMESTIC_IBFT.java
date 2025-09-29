@@ -130,13 +130,24 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		// NOTE:
 		// - ĐÃ CHUYỂN cú pháp DECODE/NVL/TRUNC/TO_CHAR sang MySQL.
 		// - Cần đảm bảo các function tồn tại trên TiDB.
-		recomputeFeesStage1();
+		//block update 1
+		recomputeFeesStage1_v2();
+		//block update 2
 		recomputeFeesStage2_OldRange();
+		//block update 3
 		recomputeFeesStage3_ByWhitelist();
+		//block update 4
 		recomputeFeesStage4_FillZeros(thue);
-		recomputeFeesStage5_PostMapFields();
+		//block update 5
+		recomputeFeesStage5_PostMapFields(thue);
+		//block update 6
+		recomputeFeesStage6();
+		recomputeFeesStage6_1();
+		// block 7
 		cleanupSpecialChars();
+		// block 8 update Pcode_Orig cho gd C3-72 phuc vu sinh file BEN
 		updatePcodeOrig();
+		//block 9
 		zeroFeesForPartialReversals();
 
 		// 9) Ghi RP_LOG_SHC_TMP
@@ -422,6 +433,8 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		int pagesize = 5000;
 		while (true) {
 			List<ShclogSettIbftAdjustDto> listShclogSettIbftAdjustDto = fetchPage(lastIndex, pagesize);
+			if (listShclogSettIbftAdjustDto.size() == 0)
+				break;
 			lastIndex = listShclogSettIbftAdjustDto.get(listShclogSettIbftAdjustDto.size() - 1).getId();
 			for (ShclogSettIbftAdjustDto element : listShclogSettIbftAdjustDto) {
 //				  public String getFeeKey(
@@ -516,6 +529,8 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		int pagesize = 5000;
 		while (true) {
 			List<ShclogSettIbftAdjustDto> listShclogSettIbftAdjustDto = fetchPage(wherecommand, lastIndex, pagesize);
+			if (listShclogSettIbftAdjustDto.size() == 0)
+				break;
 			lastIndex = listShclogSettIbftAdjustDto.get(listShclogSettIbftAdjustDto.size() - 1).getId();
 			for (ShclogSettIbftAdjustDto element : listShclogSettIbftAdjustDto) {
 //				  public String getFeeKey(
@@ -605,6 +620,89 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 
 	}
 
+	private void recomputeFeesStage3(String wherecommand) {
+		Long lastIndex = 0L;
+		int pagesize = 5000;
+		while (true) {
+			List<ShclogSettIbftAdjustDto> listShclogSettIbftAdjustDto = fetchPage(wherecommand, lastIndex, pagesize);
+			if (listShclogSettIbftAdjustDto.size() == 0)
+				break;
+			lastIndex = listShclogSettIbftAdjustDto.get(listShclogSettIbftAdjustDto.size() - 1).getId();
+			for (ShclogSettIbftAdjustDto element : listShclogSettIbftAdjustDto) {
+//				  public String getFeeKey(
+//				            int acquirer,
+//				            int issuer,
+//				            String proCode,
+//				            int merchantType,
+//				            Integer currencyNullable,
+//				            LocalDate settDate,
+//				            long otrace
+//				    ) 
+				String acq, iss, procCode, merchantType;
+				acq = element.getAcquirerFe() != null ? element.getAcquirerFe() + "" : (element.getAcquirer());
+				iss = element.getIssuerFe() != null ? element.getIssuerFe() + "" : element.getIssuer();
+				procCode = proCodeForGetFeeKey(element);
+				merchantType = getMerchantType(element);
+				String feeKey = cachedFee.getFeeKey(Helpers.str2Int(acq), Helpers.str2Int(iss), procCode,
+						Helpers.str2Int(merchantType), element.getAcqCurrencyCode().intValue(),
+						element.getSettlementDate(), element.getTrace().intValue());
+				BigDecimal FEE_ISS, FEE_ACQ, FEE_IRF_ISS, FEE_SVF_ISS, FEE_IRF_ACQ, FEE_SVF_ACQ, FEE_IRF_BEN,
+						FEE_SVF_BEN, FEE_NOTE;
+				BigDecimal amount = getAmount(element);
+				String proCodeForCalFee = getProCodeForCalFee(element);
+//				   public BigDecimal oldFinalFeeCalVer(
+//				            String feeFor,
+//				            String feeKey,
+//				            int acquirer,
+//				            int issuer,
+//				            String proCode,
+//				            Integer currencyNullable,
+//				            BigDecimal amount,
+//				            BigDecimal conrate,
+//				            long otrace
+//				    ) {
+				FEE_ISS = cachedFee.oldFinalFeeCalVer("ISS", feeKey, Helpers.str2Int(acq), Helpers.str2Int(iss),
+						proCodeForCalFee, element.getAcqCurrencyCode().intValue(), amount, element.getIssConvRate(),
+						element.getTrace().intValue());
+				FEE_ACQ = cachedFee.oldFinalFeeCalVer("ACQ", feeKey, Helpers.str2Int(acq), Helpers.str2Int(iss),
+						proCodeForCalFee, element.getAcqCurrencyCode().intValue(), amount, element.getIssConvRate(),
+						element.getTrace().intValue());
+				FEE_IRF_ISS = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_ISS", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_ISS = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_ISS", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_IRF_ACQ = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_ACQ", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_ACQ = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_ACQ", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_IRF_BEN = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_BEN", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_BEN = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_BEN", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_NOTE = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "NOTE", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+//				element.setFeeAcq(FEE_ACQ);
+//				element.setFeeIss(FEE_ISS);
+				element.setFeeIrfIss(FEE_IRF_ISS);
+				element.setFeeSvfIss(FEE_SVF_ISS);
+				element.setFeeIrfAcq(FEE_IRF_ACQ);
+				element.setFeeSvfAcq(FEE_SVF_ACQ);
+				element.setFeeIrfBen(FEE_IRF_BEN);
+				element.setFeeSvfBen(FEE_SVF_BEN);
+//				element.setFeeNote(FEE_NOTE + "");
+				doUpdate2(element);
+			}
+		}
+
+	}
+
 	private void doUpdate(ShclogSettIbftAdjustDto u) throws DataAccessException {
 		String sql = """
 				    UPDATE SHCLOG_SETT_IBFT_ADJUST
@@ -628,6 +726,122 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 				.addValue("feeIrfBen", u.getFeeIrfBen()).addValue("feeSvfBen", u.getFeeSvfBen())
 				.addValue("feeNote", u.getFeeNote());
 //	                .addValue("reFee", u.reFee());
+		log.info("Sql log: {}",SqlLogUtils.renderSql(sql, p.getValues()));
+		jdbc.update(sql, p);
+	}
+
+	private void recomputeFeesStage2(String wherecommand) {
+		Long lastIndex = 0L;
+		int pagesize = 5000;
+		while (true) {
+			List<ShclogSettIbftAdjustDto> listShclogSettIbftAdjustDto = fetchPage(wherecommand, lastIndex, pagesize);
+			if (listShclogSettIbftAdjustDto.size() == 0)
+				break;
+			lastIndex = listShclogSettIbftAdjustDto.get(listShclogSettIbftAdjustDto.size() - 1).getId();
+			for (ShclogSettIbftAdjustDto element : listShclogSettIbftAdjustDto) {
+//				  public String getFeeKey(
+//				            int acquirer,
+//				            int issuer,
+//				            String proCode,
+//				            int merchantType,
+//				            Integer currencyNullable,
+//				            LocalDate settDate,
+//				            long otrace
+//				    ) 
+				String acq, iss, procCode, merchantType;
+				acq = element.getAcquirerFe() != null ? element.getAcquirerFe() + "" : (element.getAcquirer());
+				iss = element.getIssuerFe() != null ? element.getIssuerFe() + "" : element.getIssuer();
+				procCode = proCodeForGetFeeKey(element);
+				merchantType = getMerchantType(element);
+				String feeKey = element.getFeeKey();
+				BigDecimal FEE_ISS, FEE_ACQ, FEE_IRF_ISS, FEE_SVF_ISS, FEE_IRF_ACQ, FEE_SVF_ACQ, FEE_IRF_BEN,
+						FEE_SVF_BEN, FEE_NOTE;
+				BigDecimal amount = getAmount(element);
+				String proCodeForCalFee = getProCodeForCalFee(element);
+//				   public BigDecimal oldFinalFeeCalVer(
+//				            String feeFor,
+//				            String feeKey,
+//				            int acquirer,
+//				            int issuer,
+//				            String proCode,
+//				            Integer currencyNullable,
+//				            BigDecimal amount,
+//				            BigDecimal conrate,
+//				            long otrace
+//				    ) {
+//				FEE_ISS = cachedFee.oldFinalFeeCalVer("ISS", feeKey, Helpers.str2Int(acq), Helpers.str2Int(iss),
+//						proCodeForCalFee, element.getAcqCurrencyCode().intValue(), amount, element.getIssConvRate(),
+//						element.getTrace().intValue());
+//				FEE_ACQ = cachedFee.oldFinalFeeCalVer("ACQ", feeKey, Helpers.str2Int(acq), Helpers.str2Int(iss),
+//						proCodeForCalFee, element.getAcqCurrencyCode().intValue(), amount, element.getIssConvRate(),
+//						element.getTrace().intValue());
+//				NAPAS_FEE_OLD_TRAN(t.MSGTYPE,'SVF_ACQ',FEE_KEY, IFNULL(t.ACQUIRER_FE,t.ACQUIRER), IFNULL(t.ISSUER_FE,t.ISSUER),
+//			              t.ACQ_CURRENCY_CODE, IF(t.ACQ_CURRENCY_CODE=418, t.SETTLEMENT_AMOUNT, t.AMOUNT), t.CARDHOLDER_CONV_RATE, t.TRACE),
+//				 public BigDecimal napasFeeOldTran(
+//				            int msgType,
+//				            String feeFor,
+//				            String feeKey,
+//				            int acquirer,
+//				            int issuer,
+//				            Integer currencyNullable,
+//				            BigDecimal amount,
+//				            BigDecimal conrate,
+//				            long otrace
+//				    )
+				FEE_IRF_ISS = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_ISS", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_ISS = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_ISS", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_IRF_ACQ = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_ACQ", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_ACQ = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_ACQ", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_IRF_BEN = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "IRF_BEN", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+				FEE_SVF_BEN = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "SVF_BEN", feeKey,
+						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+						element.getIssConvRate(), element.getTrace().intValue());
+//				FEE_NOTE = cachedFee.napasFeeOldTran(element.getMsgtype().intValue(), "NOTE", feeKey,
+//						Helpers.str2Int(acq), Helpers.str2Int(iss), element.getAcqCurrencyCode().intValue(), amount,
+//						element.getIssConvRate(), element.getTrace().intValue());
+//				element.setFeeAcq(FEE_ACQ);
+//				element.setFeeIss(FEE_ISS);
+				element.setFeeIrfIss(FEE_IRF_ISS);
+				element.setFeeSvfIss(FEE_SVF_ISS);
+				element.setFeeIrfAcq(FEE_IRF_ACQ);
+				element.setFeeSvfAcq(FEE_SVF_ACQ);
+				element.setFeeIrfBen(FEE_IRF_BEN);
+				element.setFeeSvfBen(FEE_SVF_BEN);
+//				element.setFeeNote(FEE_NOTE + "");
+				doUpdate2(element);
+			}
+		}
+
+	}
+
+	private void doUpdate2(ShclogSettIbftAdjustDto u) throws DataAccessException {
+		String sql = """
+				    UPDATE SHCLOG_SETT_IBFT_ADJUST
+				    SET FEE_IRF_ISS=:feeIrfIss,
+				        FEE_SVF_ISS=:feeSvfIss,
+				        FEE_IRF_ACQ=:feeIrfAcq,
+				        FEE_SVF_ACQ=:feeSvfAcq,
+				        FEE_IRF_BEN=:feeIrfBen,
+				        FEE_SVF_BEN=:feeSvfBen,
+				        RE_FEE=1
+				    WHERE id=:id
+				""";
+		MapSqlParameterSource p = new MapSqlParameterSource().addValue("id", u.getId())
+				.addValue("feeIrfIss", u.getFeeIrfIss()).addValue("feeSvfIss", u.getFeeSvfIss())
+				.addValue("feeIrfAcq", u.getFeeIrfAcq()).addValue("feeSvfAcq", u.getFeeSvfAcq())
+				.addValue("feeIrfBen", u.getFeeIrfBen()).addValue("feeSvfBen", u.getFeeSvfBen());
+//	                .addValue("reFee", u.reFee());
+		log.info("Sql log: {}",SqlLogUtils.renderSql(sql, p.getValues()));
 		jdbc.update(sql, p);
 	}
 
@@ -688,7 +902,7 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 	public List<ShclogSettIbftAdjustDto> fetchPage(long lastIdExclusive, int pageSize) {
 		String sqlSelect = """
 				  SELECT
-				  ID,
+				  tidb_id as ID,
 				  MSGTYPE, PAN, PCODE, AMOUNT, ACQ_CURRENCY_CODE,
 				  FEE_ISS, FEE_ACQ, TRACE, LOCAL_TIME, LOCAL_DATE, SETTLEMENT_DATE,
 				  ACQUIRER, ISSUER, RESPCODE, MERCHANT_TYPE, CH_CURRENCY_CODE, TERMID,
@@ -709,9 +923,9 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 				  SVFBNBNP, IRFBNBISS, IRFBNBACQ, RE_FEE, ISS_SEND, ACQ_SEND, BNB_SEND,
 				  TXNSRC, TXNDEST, PREAMOUNT_USD, CONTENT_FUND, DATA_ID, ADD_INFO, PREAMOUNT_ACQ,
 				  F60_UPI, F100_UPI, IS_PART_REV, TRANSIT_CSRR, MSGTYPE_DETAIL
-				FROM SHCLOG_SETT_IBFT_ADJUST
-				WHERE ID > ? AND t.msgtype=210 AND t.respcode=110 AND t.Fee_Key IS NULL AND t.FEE_NOTE NOT LIKE '%HACH TOAN DIEU CHINH%'
-				ORDER BY ID
+				FROM SHCLOG_SETT_IBFT_ADJUST t
+				WHERE tidb_id > ? AND t.msgtype=210 AND t.respcode=110 AND t.Fee_Key IS NULL AND t.FEE_NOTE NOT LIKE '%HACH TOAN DIEU CHINH%'
+				ORDER BY tidb_id
 				LIMIT ?
 				""";
 		return jdbcTemplate.query(sqlSelect, SHCLOG_ROW_MAPPER, lastIdExclusive, pageSize);
@@ -720,7 +934,7 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 	public List<ShclogSettIbftAdjustDto> fetchPage(String wherecommand, long lastIdExclusive, int pageSize) {
 		String sqlSelect = """
 								  SELECT
-								  ID,
+								  tidb_id As ID,
 								  MSGTYPE, PAN, PCODE, AMOUNT, ACQ_CURRENCY_CODE,
 								  FEE_ISS, FEE_ACQ, TRACE, LOCAL_TIME, LOCAL_DATE, SETTLEMENT_DATE,
 								  ACQUIRER, ISSUER, RESPCODE, MERCHANT_TYPE, CH_CURRENCY_CODE, TERMID,
@@ -741,12 +955,9 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 								  SVFBNBNP, IRFBNBISS, IRFBNBACQ, RE_FEE, ISS_SEND, ACQ_SEND, BNB_SEND,
 								  TXNSRC, TXNDEST, PREAMOUNT_USD, CONTENT_FUND, DATA_ID, ADD_INFO, PREAMOUNT_ACQ,
 								  F60_UPI, F100_UPI, IS_PART_REV, TRANSIT_CSRR, MSGTYPE_DETAIL
-								FROM SHCLOG_SETT_IBFT_ADJUST
-				//				WHERE ID > ? AND t.msgtype=210 AND t.respcode=110 AND t.Fee_Key IS NULL AND t.FEE_NOTE NOT LIKE '%HACH TOAN DIEU CHINH%'
-				//				ORDER BY ID
-				//				LIMIT ?
+								FROM SHCLOG_SETT_IBFT_ADJUST AS t
 								""";
-		String sqlFormat = String.format("%s %s AND ID > ? ORDER BY ID LIMIT ?", sqlSelect, wherecommand);
+		String sqlFormat = String.format("%s %s AND tidb_id > ? ORDER BY tidb_id LIMIT ?", sqlSelect, wherecommand);
 		return jdbcTemplate.query(sqlFormat, SHCLOG_ROW_MAPPER, lastIdExclusive, pageSize);
 	}
 
@@ -782,9 +993,12 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 				    WHERE DATE(Valid_To) <= STR_TO_DATE('20171001','%Y%m%d')
 				)
 						""";
-		recomputeFeesStage(wherecommand);
+		recomputeFeesStage3(wherecommand);
 	}
 
+	/**
+	 * Block update 3
+	 */
 	private void recomputeFeesStage3_ByWhitelist() {
 		// Block UPDATE #3: whitelist 2 Fee_Key trong khoảng settle_date
 		// 2017-07-01..2017-10-01
@@ -805,49 +1019,171 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		String wherecommand = """
 				WHERE t.msgtype=210 AND t.respcode IN (110,112,113,114,115)
 				      AND t.Fee_Key IN ('C4J94BD3-E9K8-46EC-Q8A7-FE46J0E95P1E','LC01751F-0C65-4FA2-9T34-8H86C13CDTC0')
-				      AND DATE(t.SETTLEMENT_DATE) BETWEEN '2017-07-01' AND '2017-10-01';
+				      AND DATE(t.SETTLEMENT_DATE) BETWEEN '2017-07-01' AND '2017-10-01'
 				""";
-		recomputeFeesStage(wherecommand);
+		recomputeFeesStage2(wherecommand);
 	}
 
-	/** block update 4
+	/**
+	 * block update 4
+	 * 
 	 * @param thue
 	 */
 	private void recomputeFeesStage4_FillZeros(BigDecimal thue) {
 		// Block UPDATE #4: scale thue & fill null -> 0
-		String sql = """
-				    UPDATE SHCLOG_SETT_IBFT_ADJUST t SET
-				    FEE_IRF_ISS = IFNULL(FEE_IRF_ISS,0) * :th,
-				    FEE_SVF_ISS = IFNULL(FEE_SVF_ISS,0) * :th,
-				    FEE_IRF_ACQ = IFNULL(FEE_IRF_ACQ,0) * :th,
-				    FEE_SVF_ACQ = IFNULL(FEE_SVF_ACQ,0) * :th,
-				    FEE_IRF_BEN = IFNULL(FEE_IRF_BEN,0) * :th,
-				    FEE_SVF_BEN = IFNULL(FEE_SVF_BEN,0) * :th
-				    WHERE IFNULL(RE_FEE,0)=1;
+
+		String wherecommand = """
+				where msgtype = 210
+				and respcode In (110,112,113,114,115)
+				And Fee_Key In
+				(
+				    Select Fee_Key
+				    From Gr_Fee_Config_New
+				    Where Date(Valid_To) <= STR_TO_DATE('20171001','yyyymmdd')
+				)
+				And FEE_SVF_ISS = 0
+				And FEE_IRF_ISS = 0
+				And FEE_IRF_ACQ = 0
+				And FEE_SVF_ACQ = 0
 				""";
-//		String wherecommand = 
-		jdbc.update(sql, new MapSqlParameterSource("th", thue));
+		recomputeFeesStage3(wherecommand);
+//		jdbc.update(sql, new MapSqlParameterSource("th", thue));
 	}
 
-	private void recomputeFeesStage5_PostMapFields() {
+	/**
+	 * block update 5
+	 */
+	private int recomputeFeesStage5_PostMapFields(BigDecimal thue) {
+	    final String sql = """
+	        UPDATE SHCLOG_SETT_IBFT_ADJUST
+	        SET
+	          FEE_IRF_ISS = CASE
+	                          WHEN FEE_IRF_ISS IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_IRF_ISS * :thue, 2)
+	                                 ELSE ROUND(FEE_IRF_ISS * :thue, 0)
+	                               END
+	                        END,
+	          FEE_SVF_ISS = CASE
+	                          WHEN FEE_SVF_ISS IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_SVF_ISS * :thue, 2)
+	                                 ELSE ROUND(FEE_SVF_ISS * :thue, 0)
+	                               END
+	                        END,
+	          FEE_IRF_ACQ = CASE
+	                          WHEN FEE_IRF_ACQ IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_IRF_ACQ * :thue, 2)
+	                                 ELSE ROUND(FEE_IRF_ACQ * :thue, 0)
+	                               END
+	                        END,
+	          FEE_SVF_ACQ = CASE
+	                          WHEN FEE_SVF_ACQ IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_SVF_ACQ * :thue, 2)
+	                                 ELSE ROUND(FEE_SVF_ACQ * :thue, 0)
+	                               END
+	                        END,
+	          FEE_IRF_BEN = CASE
+	                          WHEN FEE_IRF_BEN IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_IRF_BEN * :thue, 2)
+	                                 ELSE ROUND(FEE_IRF_BEN * :thue, 0)
+	                               END
+	                        END,
+	          FEE_SVF_BEN = CASE
+	                          WHEN FEE_SVF_BEN IS NULL THEN 0
+	                          ELSE CASE
+	                                 WHEN ACQ_CURRENCY_CODE IN (840,418) THEN ROUND(FEE_SVF_BEN * :thue, 2)
+	                                 ELSE ROUND(FEE_SVF_BEN * :thue, 0)
+	                               END
+	                        END
+	        WHERE IFNULL(RE_FEE, 0) = 1
+	    """;
+
+	    MapSqlParameterSource params = new MapSqlParameterSource()
+	            .addValue("thue", thue); // BigDecimal
+
+	    int rows = jdbc.update(sql, params);
+	    return rows;
+	    // optional: log rows
+	}
+
+	/**
+	 * block update 6
+	 */
+	private void recomputeFeesStage6() {
 		// Block UPDATE #5: map các trường IRF*/SVF* theo điều kiện resp/acq/iss (rút
 		// gọn theo store)
 		String sql = """
-				    UPDATE SHCLOG_SETT_IBFT_ADJUST t SET
-				      SVFISSNP = IFNULL(t.Fee_Svf_Iss,0),
-				      IRFISSACQ = CASE WHEN t.acquirer_rp=220699 OR t.issuer_rp=220699 THEN IFNULL(t.FEE_IRF_ACQ,0) ELSE (CASE WHEN t.fee_irf_acq>0 THEN IFNULL(t.fee_irf_iss,0) ELSE 0 END) END,
-				      IRFISSBNB = CASE WHEN t.fee_irf_ben>0 THEN IFNULL(t.fee_irf_iss,0) ELSE 0 END,
-				      SVFACQNP = IFNULL(t.Fee_Svf_ACQ,0),
-				      IRFACQISS = CASE WHEN t.fee_irf_iss>0 THEN IFNULL(t.fee_irf_acq,0) ELSE 0 END,
-				      IRFACQBNB = CASE WHEN t.fee_irf_ben>0 THEN IFNULL(t.fee_irf_acq,0) ELSE 0 END,
-				      SVFBNBNP = IFNULL(t.fee_svf_ben,0),
-				      IRFBNBISS = CASE WHEN t.fee_irf_ISS>0 THEN IFNULL(t.fee_irf_ben,0) ELSE 0 END,
-				      IRFBNBACQ = CASE WHEN t.fee_irf_ACQ>0 THEN IFNULL(t.fee_irf_ben,0) ELSE 0 END
-				    WHERE t.respcode IN (0,110,115,113);
-				""";
+				UPDATE SHCLOG_SETT_IBFT_ADJUST
+				SET FEE_SVF_ISS = FEE_ISS + FEE_IRF_ISS
+				WHERE FEE_KEY IN (
+				  'A300C4EB-E648-4F98-99FC-9C11BFACE6D6', /* 41 cũ */
+				  '46206160-7462-46C0-81D0-6DA81C367958', /* 42 cũ ATM */
+				  'A775AB95-CF99-411E-83CE-F42E5AB4F61B'  /* 48 cũ */
+				);
+								""";
 		jdbc.update(sql, new MapSqlParameterSource());
 	}
 
+	/**
+	 * block update 6.1
+	 */
+	private void recomputeFeesStage6_1() {
+		// Block UPDATE #5: map các trường IRF*/SVF* theo điều kiện resp/acq/iss (rút
+		// gọn theo store)
+		String sql = """
+								UPDATE SHCLOG_SETT_IBFT_ADJUST t
+				SET
+				  SVFISSNP  = IFNULL(t.FEE_SVF_ISS, 0),
+
+				  IRFISSACQ = CASE
+				                WHEN t.ACQUIRER_RP = 220699 OR t.ISSUER_RP = 220699
+				                  THEN IFNULL(t.FEE_IRF_ACQ, 0)
+				                ELSE
+				                  CASE
+				                    WHEN t.FEE_IRF_ACQ > 0 THEN IFNULL(t.FEE_IRF_ISS, 0)
+				                    ELSE 0
+				                  END
+				              END,
+
+				  IRFISSBNB = CASE
+				                WHEN t.FEE_IRF_BEN > 0 THEN IFNULL(t.FEE_IRF_ISS, 0)
+				                ELSE 0
+				              END,
+
+				  SVFACQNP  = IFNULL(t.FEE_SVF_ACQ, 0),
+
+				  IRFACQISS = CASE
+				                WHEN t.FEE_IRF_ISS > 0 THEN IFNULL(t.FEE_IRF_ACQ, 0)
+				                ELSE 0
+				              END,
+
+				  IRFACQBNB = CASE
+				                WHEN t.FEE_IRF_BEN > 0 THEN IFNULL(t.FEE_IRF_ACQ, 0)
+				                ELSE 0
+				              END,
+
+				  SVFBNBNP  = IFNULL(t.FEE_SVF_BEN, 0),
+
+				  IRFBNBISS = CASE
+				                WHEN t.FEE_IRF_ISS > 0 THEN IFNULL(t.FEE_IRF_BEN, 0)
+				                ELSE 0
+				              END,
+
+				  IRFBNBACQ = CASE
+				                WHEN t.FEE_IRF_ACQ > 0 THEN IFNULL(t.FEE_IRF_BEN, 0)
+				                ELSE 0
+				              END
+				WHERE t.RESPCODE IN (0, 110, 115, 113);""";
+		jdbc.update(sql, new MapSqlParameterSource());
+	}
+
+	/**
+	 * Block 7
+	 */
 	private void cleanupSpecialChars() {
 		// Loại bỏ ký tự tab/CR/LF trong CONTENT_FUND
 		String sql1 = "UPDATE SHCLOG_SETT_IBFT_ADJUST SET CONTENT_FUND = REPLACE(CONTENT_FUND, CHAR(9), '') WHERE CONTENT_FUND LIKE CONCAT('%',CHAR(9),'%') OR CONTENT_FUND LIKE CONCAT('%',CHAR(10),'%') OR CONTENT_FUND LIKE CONCAT('%',CHAR(13),'%')";
@@ -858,16 +1194,99 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		jdbc.update(sql3, new MapSqlParameterSource());
 	}
 
+	/**
+	 * Block 8 update pcode update Pcode_Orig cho gd C3-72 phuc vu sinh file BEN
+	 */
 	private void updatePcodeOrig() {
 		// Cập nhật PCODE_ORIG theo 3 rule trong store
-		String sqlA = "UPDATE SHCLOG_SETT_IBFT_ADJUST SET Pcode_Orig = CONCAT('91', CREATE_PCODE(ACQUIRER,PAN), CREATE_PCODE(BB_BIN, SUBSTRING(ACCTNUM, LOCATE('|', CONCAT(ACCTNUM,'|'))+1))) WHERE From_Sys='IST|IBT' AND Tran_Case='C3|72'";
-		String sqlB = "UPDATE SHCLOG_SETT_IBFT_ADJUST SET Pcode_Orig = CONCAT('91', CREATE_PCODE(ACQUIRER,PAN), CREATE_PCODE(BB_BIN, SUBSTRING(ACCTNUM, LOCATE('|', CONCAT(ACCTNUM,'|'))+1))) WHERE Pcode='43' AND BB_BIN IN (SELECT CAST(SHCLOG_ID AS UNSIGNED) FROM RP_INSTITUTION WHERE IFNULL(BEN_72,0)=1)";
-		String sqlC = "UPDATE SHCLOG_SETT_IBFT_ADJUST SET Pcode_Orig = '420000' WHERE Pcode='43' AND BB_BIN NOT IN (SELECT CAST(SHCLOG_ID AS UNSIGNED) FROM RP_INSTITUTION WHERE IFNULL(BEN_72,0)=1)";
+		String sqlA = """
+				-- (1) IST|IBT + C3|72
+				UPDATE SHCLOG_SETT_IBFT_ADJUST t
+				SET Pcode_Orig = CONCAT(
+				  '91',
+				  /* createPcode(ACQUIRER, PAN) */
+				  CASE
+				    WHEN EXISTS (
+				      SELECT 1
+				      FROM PCODE72 p
+				      WHERE TRIM(p.BANKID) = TRIM(t.ACQUIRER)
+				        AND INSTR(p.PRANGE, LEFT(TRIM(t.PAN), 6)) > 0
+				    ) THEN '00' ELSE '20'
+				  END,
+				  /* createPcode(BB_BIN, tail(ACCTNUM)) */
+				  CASE
+				    WHEN EXISTS (
+				      SELECT 1
+				      FROM PCODE72 p
+				      WHERE TRIM(p.BANKID) = TRIM(CAST(t.BB_BIN AS CHAR))
+				        AND INSTR(
+				              p.PRANGE,
+				              LEFT(
+				                SUBSTRING_INDEX(CONCAT(t.ACCTNUM,'|'), '|', -1),  -- phần sau dấu '|', rỗng nếu không có
+				                6
+				              )
+				            ) > 0
+				    ) THEN '00' ELSE '20'
+				  END
+				)
+				WHERE t.From_Sys = 'IST|IBT'
+				  AND t.Tran_Case = 'C3|72';
+
+								""";
+		String sqlB = """
+												-- (2) PCODE = 43 và thuộc nhóm BEN_72 = 1
+								UPDATE SHCLOG_SETT_IBFT_ADJUST t
+								SET Pcode_Orig = CONCAT(
+								  '91',
+								  CASE
+								    WHEN EXISTS (
+								      SELECT 1
+								      FROM PCODE72 p
+								      WHERE TRIM(p.BANKID) = TRIM(t.ACQUIRER)
+								        AND INSTR(p.PRANGE, LEFT(TRIM(t.PAN), 6)) > 0
+								    ) THEN '00' ELSE '20'
+								  END,
+								  CASE
+								    WHEN EXISTS (
+								      SELECT 1
+								      FROM PCODE72 p
+								      WHERE TRIM(p.BANKID) = TRIM(CAST(t.BB_BIN AS CHAR))
+								        AND INSTR(
+								              p.PRANGE,
+								              LEFT(SUBSTRING_INDEX(CONCAT(t.ACCTNUM,'|'), '|', -1), 6)
+								            ) > 0
+								    ) THEN '00' ELSE '20'
+								  END
+								)
+								WHERE t.Pcode = '43'
+								  AND t.BB_BIN IN (
+								        SELECT CAST(r.SHCLOG_ID AS UNSIGNED)
+								        FROM RP_INSTITUTION r
+								        WHERE IFNULL(r.BEN_72, 0) = 1
+								          AND r.SHCLOG_ID REGEXP '^[0-9]+$'
+								    );
+				""";
+		String sqlC = """
+								-- (3) PCODE = 43 và KHÔNG thuộc nhóm BEN_72 = 1
+				UPDATE SHCLOG_SETT_IBFT_ADJUST t
+				SET Pcode_Orig = '420000'
+				WHERE t.Pcode = '43'
+				  AND t.BB_BIN NOT IN (
+				        SELECT CAST(r.SHCLOG_ID AS UNSIGNED)
+				        FROM RP_INSTITUTION r
+				        WHERE IFNULL(r.BEN_72, 0) = 1
+				          AND r.SHCLOG_ID REGEXP '^[0-9]+$'
+				    );
+
+								""";
 		jdbc.update(sqlA, new MapSqlParameterSource());
 		jdbc.update(sqlB, new MapSqlParameterSource());
 		jdbc.update(sqlC, new MapSqlParameterSource());
 	}
 
+	/**
+	 * block 9
+	 */
 	private void zeroFeesForPartialReversals() {
 		String sql = """
 				    UPDATE SHCLOG_SETT_IBFT_ADJUST
@@ -883,11 +1302,12 @@ public class Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT {
 		// AUTO_INCREMENT
 		// Ở đây giả định Getkhoacuabang tồn tại trên DB TiDB như 1 function trả về số.
 		String sql = """
-				    INSERT INTO RP_LOG_SHC_TMP(LOG_DDL_ID,TUTG,DENTG,TGDODL,CREATED_USER,SETT_CODE)
-				    VALUES (Getkhoacuabang('RP_LOG_SHC_TMP','LOG_DDL_ID'), :tu, :den, NOW(), :u, CASE WHEN :sc=900 THEN 7041 WHEN :sc=901 THEN 8401 ELSE :sc END)
+				    INSERT INTO RP_LOG_SHC_TMP(TUTG,DENTG,TGDODL,CREATED_USER,SETT_CODE)
+				    VALUES (:tu, :den, NOW(), :u, CASE WHEN :sc=900 THEN 7041 WHEN :sc=901 THEN 8401 ELSE :sc END)
 				""";
 		MapSqlParameterSource ps = new MapSqlParameterSource().addValue("tu", day1.format(DDMMYYYY_HHMMSS))
 				.addValue("den", day2.format(DDMMYYYY_HHMMSS)).addValue("u", createdUser).addValue("sc", settCode);
+		log.info("Sql: {}", SqlLogUtils.renderSql(sql, ps.getValues()));
 		jdbc.update(sql, ps);
 	}
 

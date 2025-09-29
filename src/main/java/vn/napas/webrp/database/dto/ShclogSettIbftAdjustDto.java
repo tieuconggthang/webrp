@@ -139,6 +139,4 @@ public class ShclogSettIbftAdjustDto {
 	private BigDecimal isPartRev;
 	private String transitCsrr;
 	private String msgtypeDetail;
-	
-	
 }

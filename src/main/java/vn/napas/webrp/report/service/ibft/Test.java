@@ -129,10 +129,10 @@ public class Test {
 //		// 35
 //		checkTCNUll();
 //		// 36
-		NAPAS_SHC_TMP_DOMESTIC_IBFT(localDateTest, localDateTest, "java", 0);
+//		NAPAS_SHC_TMP_DOMESTIC_IBFT(localDateTest, localDateTest, "java", 0);
 //		// 37
 //
-//		NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDateTest, localDateTest, "java");
+		NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDateTest, localDateTest, "java");
 
 	}
 	
