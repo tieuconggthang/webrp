@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import vn.napas.webrp.report.util.SqlLogUtils;
 
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -29,6 +31,8 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class Proc_NAPAS_MASTER_VIEW_DOMESTIC_IBFT {
 	private final NamedParameterJdbcTemplate jdbc;
+    private final JdbcTemplate jdbcTemplate;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -100,6 +104,30 @@ public class Proc_NAPAS_MASTER_VIEW_DOMESTIC_IBFT {
 		return jdbc.update(sql, p);
 	}
 
+	/**
+     * Lấy tham số CITAD_SETT_DATE từ bảng NAPAS_PARA
+     * @return LocalDate (nếu có), null nếu không tìm thấy hoặc lỗi parse
+     */
+    public LocalDate getCitadSettDate() {
+        try {
+            String value = jdbcTemplate.queryForObject(
+                "SELECT PARA_VALUE FROM NAPAS_PARA WHERE PARA_NAME = 'CITAD_SETT_DATE' LIMIT 1",
+                String.class
+            );
+            if (value != null) {
+                return LocalDate.parse(value, FORMATTER); // parse từ dd/MM/yyyy
+            }
+        } catch (EmptyResultDataAccessException e) {
+            // Không có bản ghi, return null hoặc giá trị mặc định
+        } catch (Exception e) {
+            // Nếu lỗi format, có thể log và trả null
+            System.err.println("Error parsing CITAD_SETT_DATE: " + e.getMessage());
+        }
+        return null;
+    }
+
+
+	
 	/* ================= làm sạch bảng đích ================= */
 	public int clearTargetTable() {
 		// TRUNCATE sẽ auto-commit, nên dùng DELETE để giữ transaction nguyên khối

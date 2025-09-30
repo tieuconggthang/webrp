@@ -27,8 +27,7 @@ public class NapasMasterViewDomesticIbftService {
 		String smsList = repo.getSmsListOrDefault("0983411005");
 		repo.logErrEx("BEGIN", "Start", MODULE, 0);
 		try {
-// 1) Tiền xử lý phiên
-			repo.insertSessionDomesticIbft(fromDate, toDate, user);
+
 
 // 2) Làm sạch bảng đích
 			repo.clearTargetTable();
