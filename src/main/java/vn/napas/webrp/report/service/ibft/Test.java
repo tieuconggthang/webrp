@@ -75,6 +75,7 @@ public class Test {
 	Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT proc_NAPAS_SHC_TMP_DOMESTIC_IBFT;
 	@Autowired
 	NapasMasterViewDomesticIbftService napasMasterViewDomesticIbftService;
+	@Autowired NapasMasterViewDomesticServiceInline19 napasMasterViewDomesticServiceInline19;
 
 	
 	@EventListener(ApplicationReadyEvent.class)
@@ -467,7 +468,9 @@ public class Test {
 	private void NAPAS_MASTER_VIEW_DOMESTIC_IBFT(LocalDate pQRY_FROM_DATE, LocalDate pQRY_TO_DATE, String user) {
 		try {
 			log.info("Starting");
-			napasMasterViewDomesticIbftService.run(pQRY_FROM_DATE, pQRY_TO_DATE, user);
+//			napasMasterViewDomesticIbftService.run(pQRY_FROM_DATE, pQRY_TO_DATE, user);
+			
+			napasMasterViewDomesticServiceInline19.run(pQRY_FROM_DATE, pQRY_FROM_DATE, user);
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
 		} finally {

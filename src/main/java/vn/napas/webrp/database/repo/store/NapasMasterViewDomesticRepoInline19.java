@@ -1,57 +1,139 @@
-CREATE OR REPLACE PROCEDURE RPT.NAPAS_MASTER_VIEW_DOMESTIC_IBFT
-    ( 
-        pQRY_FROM_DATE VARCHAR2,
-        pQRY_TO_DATE VARCHAR2,
-        pUser VARCHAR2
-    )
-AS
-    ecode NUMBER;
-    emesg VARCHAR2(200);
-    Sett_From DATE := TO_DATE(pQRY_FROM_DATE,'dd/MM/yyyy');
-    Sett_To DATE := TO_DATE(pQRY_TO_DATE,'dd/MM/yyyy');
-    vlistsms varchar2(100) :='0983411005';
-    vDetail    VARCHAR2(500) := 'Nothing ! ';    
-BEGIN
-    Begin
-        Select PARA_VALUE Into vlistsms
-        From NAPAS_PARA
-        Where PARA_NAME = 'LIST_SMS';
-    EXCEPTION
-        WHEN OTHERS THEN
-            vlistsms := '0983411005';
-    End;
+
+package vn.napas.webrp.database.repo.store;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.report.util.SqlLogUtils;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+
+/**
+ * NAPAS_MASTER_VIEW_DOMESTIC_IBFT
+ */
+@Repository
+@Slf4j
+public class NapasMasterViewDomesticRepoInline19 {
+    private final NamedParameterJdbcTemplate jdbc;
+    @Autowired Proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT;
+    private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    public NapasMasterViewDomesticRepoInline19(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+    public void executeAll(LocalDate fromDate, LocalDate toDate, String user) {
+    	String from,  to;
+    	from = fromDate.format(DMY);
+    	to = toDate.format(DMY);
+        MapSqlParameterSource p = new MapSqlParameterSource()
+            .addValue("pQRY_FROM_DATE", from)
+            .addValue("pQRY_TO_DATE", to)
+            .addValue("pUser", user)
+            .addValue("LIST_SMS", user);
+
+        execStep("01", STEP_01_SQL, p);
+//        execStep("02", STEP_02_SQL, p);
+        proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT.run(from, to, user);
+//        execStep("03", STEP_03_SQL, p);
+        execStep("04", STEP_04_SQL, p);
+        execStep("05", STEP_05_SQL, p);
+        execStep("06", STEP_06_SQL, p);
+//        execStep("07", STEP_07_SQL, p);
+        execStep("08", STEP_08_SQL, p);
+        execStep("08A", STEP_08A_SQL, p);
+        execStep("09", STEP_09_SQL, p);
+        execStep("10", STEP_10_SQL, p);
+        execStep("11", STEP_11_SQL, p);
+        execStep("12", STEP_12_SQL, p);
+        execStep("13", STEP_13_SQL, p);
+        execStep("14", STEP_14_SQL, p);
+        execStep("15", STEP_15_SQL, p);
+        execStep("16", STEP_16_SQL, p);
+        execStep("17", STEP_17_SQL, p);
+        execStep("18", STEP_18_SQL, p);
+        execStep("19", STEP_19_SQL, p);
+    }
+
+    private void execStep(String tag, String sql, MapSqlParameterSource p) {
+        if (sql == null || sql.isBlank()) return;
+        // Skip legacy procedure call in step content; call from service instead if needed
+//        if (sql.matches("(?s).*INSERT_TCKT_SESSION_DOMESTIC_IBFT\s*\(.*")) return;
+
+        if (sql != null && sql.matches("(?s).*INSERT_TCKT_SESSION_DOMESTIC_IBFT\\s*\\(.*")) {
+            return;
+        }
+        // Split on semicolon + newline, or blank lines
+        String[] parts = sql.split(";\n|\n\n");
+        for (String stmt : parts) {
+            String s = stmt.trim();
+            if (s.isEmpty()) continue;
+            try {
+            	log.info("sql tag: {}", SqlLogUtils.renderSql(s, p.getValues()));
+                int rows = jdbc.update(s, p);
+                log.info("{}: {} row(s)", tag, rows);
+            } catch (DataAccessException ex) {
+            	log.error("Execption: {}", ex.getMessage(), ex);
+                logErr("-1", "Step " + tag + " failed: " + ex.getMessage(), "NAPAS_MASTER_VIEW_DOMESTIC_IBFT");
+            }
+        }
+    }
+
+    private void logErr(String code, String detail, String module) {
+        String sql = "INSERT INTO ERR_EX(ERR_TIME, ERR_CODE, ERR_DETAIL, ERR_MODULE) VALUES (NOW(), :c, :d, :m)";
+        jdbc.update(sql, Map.of("c", code, "d", detail, "m", module));
+    }
+
+    // lines 23-25
+    private static final String STEP_01_SQL = """
     -- step 1 insert log action
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
-    Values(sysdate,'0','Start','NAPAS_MASTER_VIEW_DOMESTIC_IBFT');
+    Values(NOW(),'0','Start','NAPAS_MASTER_VIEW_DOMESTIC_IBFT');
+""";
+
+    // lines 26-28
+    private static final String STEP_02_SQL = """
     --step 2 insert bang TCKT_SESSION_DOMESTIC
     --tong hop du lieu IBFT phien quyet toan vao bang tam TCKT_SESSION_DOMESTIC
-    INSERT_TCKT_SESSION_DOMESTIC_IBFT(pQRY_FROM_DATE, pQRY_TO_DATE, pUser);    
+    INSERT_TCKT_SESSION_DOMESTIC_IBFT(pQRY_FROM_DATE, pQRY_TO_DATE, :pUser);    
+""";
+
+    // lines 29-31
+    private static final String STEP_04_SQL = """
 	--step 4 xoa du lieu bang TCKT_NAPAS_IBFT
     EXECUTE IMMEDIATE 'Truncate Table TCKT_NAPAS_IBFT';
-    commit;
+
+""";
+
+    // lines 32-438
+    private static final String STEP_05_SQL = """
 	--step 5
     -- Begin: Xu ly tong hop du lieu GD thanh cong tu bang SHCLOG_SETT_IBFT
     -- ISS-ACQ
-    Insert Into /*+ parallel(6) */  TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert Into    TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_SUM, BC_CL_ADJ, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
     Select MSGTYPE_DETAIL,Case
-                When ISSUER_RP = 970426 And Substr(Trim(PAN),0,8) ='97046416' Then 970464
+                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
                 Else null
            End,
            Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End  SETT_DATE,
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -65,16 +147,16 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','42','48','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, 
         Case
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)||PCODE2
-            Else SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)
+                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)||PCODE2
+            Else SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)
         End,
         Case 
             When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
@@ -97,26 +179,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'      
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
             Else 'POS'
         End As TRAN_TYPE,
         'SWITCH' As SERVICE_CODE,
@@ -132,9 +214,9 @@ BEGIN
             Case 
                 When Pcode In ('00','01','40','20') Then
                     Case
-                        When PCODE = '20' And Respcode In (112,114) Then Decode(PREAMOUNT,null,0,-PREAMOUNT)
+                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
                         When PCODE = '20' Then -AMOUNT
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
 
                             Case 
@@ -165,7 +247,7 @@ BEGIN
             Case 
                 When Pcode In ('40') Then
                     Case
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -178,7 +260,7 @@ BEGIN
         ) As CD_AMOUNT,
         SUM(
             Case 
-                When FEE_IRF_ISS > 0 And Decode(Pcode2,null,0,Pcode2) not in (890000,720000) 
+                When FEE_IRF_ISS > 0 And CASE Pcode2 WHEN null THEN 0 ELSE Pcode2 END not in (890000,720000) 
                     Then FEE_IRF_ISS 
                 Else 0 
             End
@@ -188,7 +270,7 @@ BEGIN
             Case 
                 When Pcode In ('40') Then
                     Case
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -296,21 +378,21 @@ BEGIN
         )
     
     Group By MSGTYPE_DETAIL,Case
-                When ISSUER_RP = 970426 And Substr(Trim(PAN),0,8) ='97046416' Then 970464
+                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
                 Else null
            End, 
             Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -324,16 +406,16 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','42','48','91')  Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91')  Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, 
         Case
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)||PCODE2
-            Else SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)
+                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)||PCODE2
+            Else SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)
         End,
         Case 
             When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
@@ -356,26 +438,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                 Pcode2 Is Null 
                                 Or 
-                                Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                               ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'                    
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'                    
  
             Else 'POS'
         End,
@@ -436,24 +518,28 @@ BEGIN
         Else 0 End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+""";
+
+    // lines 439-813
+    private static final String STEP_06_SQL = """
 	--step 6
     -- ACQ-ISS
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_ADJ, BC_NP_SUM, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
     Select MSGTYPE_DETAIL,Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -467,16 +553,16 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, 
         Case
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)||PCODE2
-            Else SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)
+                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)||PCODE2
+            Else SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)
         End PCODE,
         Case 
             When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
@@ -499,26 +585,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
                        
             Else 'POS'
         End As TRAN_TYPE,
@@ -551,9 +637,9 @@ BEGIN
             Case 
                 When Pcode In ('00','01','20') Then
                     Case
-                        When PCODE = '20' And Respcode In (112,114) Then Decode(PREAMOUNT,null,0,-PREAMOUNT)
+                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
                         When PCODE = '20' Then -AMOUNT
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -673,17 +759,17 @@ BEGIN
             )
         )
     Group By MSGTYPE_DETAIL,Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -698,16 +784,16 @@ BEGIN
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
   
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, 
         Case
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)||PCODE2
-            Else SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2)
+                966100,976100,986100,996100,966200,976200,986200,996200) Then SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)||PCODE2
+            Else SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2)
         End,
         Case
             When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
@@ -730,26 +816,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
                               
             Else 'POS'
         End,
@@ -811,24 +897,28 @@ BEGIN
         End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+""";
+
+    // lines 814-1118
+    private static final String STEP_08_SQL = """
 	--step 8
     -- ISS-BEN
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
     Select Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -843,8 +933,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, PCODE,
@@ -865,26 +955,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'      
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
              
             Else 'POS'
         End As TRAN_TYPE,
@@ -904,7 +994,7 @@ BEGIN
         ) As DB_TOTAL_TRAN,
         SUM(
             Case
-                When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                 Else        
                     Case 
                         When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -997,17 +1087,17 @@ BEGIN
     And Msgtype = 210
     And Pcode In ('41','42','43','48','91')
     Group By Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -1022,8 +1112,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, PCODE,
@@ -1044,26 +1134,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
             Else 'POS'
         End,
         ISSUER_RP,
@@ -1116,24 +1206,28 @@ BEGIN
             End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+""";
+
+    // lines 1119-1409
+    private static final String STEP_08A_SQL = """
 	--step 8
     -- BEN-ISS
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE,MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
     Select Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -1148,8 +1242,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, PCODE, 
@@ -1170,26 +1264,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
  
             Else 'POS'
         End As TRAN_TYPE,
@@ -1211,7 +1305,7 @@ BEGIN
         Count(*) As CD_TOTAL_TRAN,
         SUM(
             Case
-                When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                 Else AMOUNT
             End                                            
         ) As CD_AMOUNT,
@@ -1285,17 +1379,17 @@ BEGIN
     And Msgtype = 210
     And Pcode In ('41','42','43','48','91')
     Group By Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -1310,8 +1404,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, PCODE, 
@@ -1332,26 +1426,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
  
             Else 'POS'
         End,
@@ -1407,28 +1501,32 @@ BEGIN
     ;    
     -- End: Ket thuc phan do du lieu giao dich thanh cong tu SHCLOG_SET_IBFT vao TCKT_NAPAS_IBFT
     --- Begin: Bat dau do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
+""";
+
+    // lines 1410-1817
+    private static final String STEP_09_SQL = """
 	--step 9
     -- ISS-ACQ
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_SUM, BC_CL_ADJ, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
     Select MSGTYPE_DETAIL,Case
-                When ISSUER_RP = 970426 And Substr(Trim(PAN),0,8) ='97046416' Then 970464
+                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
                 Else null
            End,
            Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End  SETT_DATE,
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -1442,13 +1540,13 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','42','48','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, 
         Case
-            When Issuer_Rp = 602907 Then Decode(PCODE_ORIG,null,SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2),Pcode_Orig)
+            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
                 966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
@@ -1475,26 +1573,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'      
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
             Else 'POS'
         End As TRAN_TYPE,
         'SWITCH' As SERVICE_CODE,
@@ -1510,9 +1608,9 @@ BEGIN
             Case 
                 When Pcode In ('00','01','40','20') Then
                     Case
-                        When PCODE = '20' And Respcode In (112,114) Then Decode(PREAMOUNT,null,0,-PREAMOUNT)
+                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
                         When PCODE = '20' Then -AMOUNT
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
 
                             Case 
@@ -1543,7 +1641,7 @@ BEGIN
             Case 
                 When Pcode In ('40') Then
                     Case
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -1556,7 +1654,7 @@ BEGIN
         ) As CD_AMOUNT,
         SUM(
             Case 
-                When FEE_IRF_ISS > 0 And Decode(Pcode2,null,0,Pcode2) not in (890000,720000) 
+                When FEE_IRF_ISS > 0 And CASE Pcode2 WHEN null THEN 0 ELSE Pcode2 END not in (890000,720000) 
                     Then FEE_IRF_ISS 
                 Else 0 
             End
@@ -1566,7 +1664,7 @@ BEGIN
             Case 
                 When Pcode In ('40') Then
                     Case
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -1674,21 +1772,21 @@ BEGIN
         )
     
     Group By MSGTYPE_DETAIL,Case
-                When ISSUER_RP = 970426 And Substr(Trim(PAN),0,8) ='97046416' Then 970464
+                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
                 Else null
            End, 
             Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -1702,13 +1800,13 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','42','48','91')  Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91')  Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, 
         Case
-            When Issuer_Rp = 602907 Then Decode(PCODE_ORIG,null,SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2),Pcode_Orig)
+            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
                 966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
@@ -1735,26 +1833,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                 Pcode2 Is Null 
                                 Or 
-                                Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                               ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'                    
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'                    
  
             Else 'POS'
         End,
@@ -1815,24 +1913,28 @@ BEGIN
         Else 0 End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+""";
+
+    // lines 1818-2195
+    private static final String STEP_10_SQL = """
 	--step 10
     -- ACQ-ISS
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_ADJ, BC_NP_SUM, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
     Select MSGTYPE_DETAIL,Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -1846,13 +1948,13 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, 
         Case
-            When Issuer_Rp = 602907 Then Decode(PCODE_ORIG,null,SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2),Pcode_Orig)
+            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
                 966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
@@ -1879,26 +1981,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
                        
             Else 'POS'
         End As TRAN_TYPE,
@@ -1931,9 +2033,9 @@ BEGIN
             Case 
                 When Pcode In ('00','01','20') Then
                     Case
-                        When PCODE = '20' And Respcode In (112,114) Then Decode(PREAMOUNT,null,0,-PREAMOUNT)
+                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
                         When PCODE = '20' Then -AMOUNT
-                        When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                         Else        
                             Case 
                                 When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -2053,17 +2155,17 @@ BEGIN
             )
         )
     Group By MSGTYPE_DETAIL,Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -2078,13 +2180,13 @@ BEGIN
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
   
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, 
         Case
-            When Issuer_Rp = 602907 Then Decode(PCODE_ORIG,null,SUBSTR(Trim(TO_CHAR(PCODE,'09')),1,2),Pcode_Orig)
+            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
             When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
                 967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
                 966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
@@ -2111,26 +2213,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
                               
             Else 'POS'
         End,
@@ -2193,24 +2295,28 @@ BEGIN
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
 
+""";
+
+    // lines 2196-2500
+    private static final String STEP_11_SQL = """
 	--step 11
     -- ISS-BEN
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
     Select Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -2225,8 +2331,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, PCODE,
@@ -2247,26 +2353,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'      
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
              
             Else 'POS'
         End As TRAN_TYPE,
@@ -2286,7 +2392,7 @@ BEGIN
         ) As DB_TOTAL_TRAN,
         SUM(
             Case
-                When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                 Else        
                     Case 
                         When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
@@ -2379,17 +2485,17 @@ BEGIN
     And Msgtype = 210
     And Pcode In ('41','42','43','48','91')
     Group By Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -2404,8 +2510,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, PCODE,
@@ -2426,26 +2532,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
             Else 'POS'
         End,
         ISSUER_RP,
@@ -2498,24 +2604,28 @@ BEGIN
             End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+""";
+
+    // lines 2501-2790
+    private static final String STEP_12_SQL = """
 ``	--step 12
     -- BEN-ISS
-    Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
             NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE,MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
     Select Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End SETT_DATE, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End As EDIT_DATE, 
         Case 
@@ -2530,8 +2640,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End As GROUP_TRAN, PCODE, 
@@ -2552,26 +2662,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
  
             Else 'POS'
         End As TRAN_TYPE,
@@ -2593,7 +2703,7 @@ BEGIN
         Count(*) As CD_TOTAL_TRAN,
         SUM(
             Case
-                When Respcode In (112,114) Then Decode(PREAMOUNT,null,0,PREAMOUNT)
+                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
                 Else AMOUNT
             End                                            
         ) As CD_AMOUNT,
@@ -2667,17 +2777,17 @@ BEGIN
     And Fee_Note Is not null
     And Pcode In ('41','42','43','48','91')
     Group By Case
-                When Respcode = 0 And SETTLEMENT_DATE < Sett_From Then Sett_From
-                When Respcode = 0 And SETTLEMENT_DATE > Sett_To Then Sett_To
-                When Respcode = 0 And SETTLEMENT_DATE Between Sett_From And Sett_To Then SETTLEMENT_DATE
+                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
+                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
                 Else null
             End, 
         Case
             When Respcode = 0 Then null
             Else
                 Case    
-                    When Trunc(Edit_Date) < Sett_From Then Sett_From
-                    Else Trunc(Edit_Date)
+                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
+                    Else DATE(Edit_Date)
                 End                    
         End, 
         Case 
@@ -2692,8 +2802,8 @@ BEGIN
             When Pcode2 = 730000  Then 'EFT'
             When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
             When PCODE2 = 930000 Then 'IBFT'  
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
             When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
             Else 'Non IBFT'
         End, PCODE, 
@@ -2714,26 +2824,26 @@ BEGIN
             When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'ATM'
             When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'SMS'
             When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'INT'
             When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
                                             Pcode2 Is Null 
 
                                             Or 
-                                            Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST'
+                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
                                           ) then 'MOB' 
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khác'
-            When Decode(FROM_SYS,null,'IST',FROM_SYS) in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khác'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
+            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
  
             Else 'POS'
         End,
@@ -2788,6 +2898,10 @@ BEGIN
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
     --- End : Ket thuc do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
+""";
+
+    // lines 2791-2821
+    private static final String STEP_13_SQL = """
 	--step 13
     Update TCKT_NAPAS_IBFT
     Set DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0, CD_IR_FEE = 0, CD_SV_FEE = 0, ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
@@ -2819,6 +2933,10 @@ BEGIN
         CD_AMOUNT = -CD_AMOUNT, CD_IR_FEE = -CD_IR_FEE, CD_SV_FEE = -CD_SV_FEE, CD_TOTAL_MONEY = -CD_TOTAL_MONEY, NAPAS_FEE = -NAPAS_FEE, BC_NP_ADJ = - BC_NP_ADJ, BC_NP_SUM = - BC_NP_SUM
     Where RESPCODE In (112,113,114,115)
     ;
+""";
+
+    // lines 2822-2858
+    private static final String STEP_14_SQL = """
 	--step 14
     Update TCKT_NAPAS_IBFT
     Set DEBIT = Case 
@@ -2856,6 +2974,10 @@ BEGIN
                             End
                    End
     ;
+""";
+
+    // lines 2859-2933
+    private static final String STEP_15_SQL = """
     --step 15
     Insert Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,OD_BY, SETT_DATE,EDIT_DATE,SETTLEMENT_CURRENCY,RESPCODE,GROUP_TRAN, 
         PCODE, TRAN_TYPE,SERVICE_CODE, GROUP_ROLE,BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, 
@@ -2931,6 +3053,10 @@ BEGIN
     ;
     
     -- Cong bank
+""";
+
+    // lines 2934-3008
+    private static final String STEP_16_SQL = """
 	-- step 16
     Insert Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,OD_BY, SETT_DATE,EDIT_DATE,SETTLEMENT_CURRENCY,RESPCODE,GROUP_TRAN, 
         PCODE, TRAN_TYPE,SERVICE_CODE, GROUP_ROLE,BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, 
@@ -3006,6 +3132,10 @@ BEGIN
     ;
 
     -- Nhom tong cong      
+""";
+
+    // lines 3009-3097
+    private static final String STEP_17_SQL = """
     --step 17
     Insert Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,OD_BY, SETT_DATE,EDIT_DATE,SETTLEMENT_CURRENCY,RESPCODE,GROUP_TRAN, 
         PCODE, TRAN_TYPE,SERVICE_CODE, GROUP_ROLE,BANK_ID, WITH_BANK, BANK_NAME, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, 
@@ -3095,6 +3225,10 @@ BEGIN
     --Where STEP In ('B-GROUP_BY_SV','C-GROUP_IBFT_OTHER','D-TOTAL_BANK','A-BY_ROLE')
         Group By MSGTYPE_DETAIL,GROUP_TRAN, TRAN_TYPE, WITH_BANK, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, SERVICE_CODE, SUB_BANK, LIQUIDITY
     ;    
+""";
+
+    // lines 3098-3136
+    private static final String STEP_18_SQL = """
     --step 18
     Update TCKT_NAPAS_IBFT
     Set OD_BY = Case
@@ -3111,7 +3245,7 @@ BEGIN
 
                     When GROUP_TRAN = 'IBFT' And TRAN_TYPE = 'IBFT' Then 'BA'
                     When GROUP_TRAN = 'IBFT' And TRAN_TYPE = 'QR_IBFT' Then 'BB'
-                    When GROUP_TRAN = 'IBFT' And TRAN_TYPE = 'IBFT khác' Then 'BC'
+                    When GROUP_TRAN = 'IBFT' And TRAN_TYPE = 'IBFT khc' Then 'BC'
                     When GROUP_TRAN = 'IBFT' And TRAN_TYPE = 'Mobile IBFT' Then 'BD'
                     When GROUP_TRAN = 'CBFT' And TRAN_TYPE = 'CBFT' Then 'CA'
                     When GROUP_TRAN = 'CBFT' And TRAN_TYPE = 'INT' Then 'CB'
@@ -3134,18 +3268,22 @@ BEGIN
                     When GROUP_TRAN = 'QR' And TRAN_TYPE = 'QR_ITMX' Then 'KB'
                     When GROUP_TRAN = 'AAA' And TRAN_TYPE = 'C?ng' Then 'Z'
                 End;
+""";
+
+    // lines 3137-3191
+    private static final String STEP_19_SQL = """
     --step 19
     Update TCKT_NAPAS_IBFT
-    Set BANK_NAME = Replace(GET_FULL_BANK_NAME(BANK_ID),'Ngân hàng','NH')
+    Set BANK_NAME = Replace(GET_FULL_BANK_NAME(BANK_ID),'Ngn hng','NH')
     Where Bank_ID Is not null
     ;
     Update TCKT_NAPAS_IBFT SET SERVICE_TYPE ='IBFT';
    
-    If (pUser = 'hoind' Or pUser = 'sondt') Then
+    If (:pUser = 'hoind' Or :pUser = 'sondt') Then
     
         Delete
         From NAPAS_FEE_MONTH
-        Where NAPAS_TIME between  Trunc(Sysdate)  and  Trunc(Sysdate) + 1 - 1/86400
+        Where NAPAS_TIME between  DATE(NOW())  and  DATE(NOW()) + 1 - 1/86400
         And DATA_TYPE ='DOMESTIC'
         And SERVICE_TYPE ='IBFT';      
     
@@ -3153,10 +3291,10 @@ BEGIN
             GROUP_TRAN, PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, BANK_NAME, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, 
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, NAPAS_FEE, DEBIT, CREDIT, OD_BY,ADJ_FEE,
             NP_ADJ_FEE,MERCHANT_TYPE,STEP,SETTLEMENT_DATE_FROM,SETTLEMENT_DATE_TO,BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,FEE_TYPE,SUB_BANK,DATA_TYPE,LIQUIDITY,SERVICE_TYPE)
-        Select  MSGTYPE_DETAIL,Sysdate, pUser, 'TCKT NAPAS' EDIT_NOTE, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, 
+        Select  MSGTYPE_DETAIL,NOW(), :pUser, 'TCKT NAPAS' EDIT_NOTE, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, 
             GROUP_TRAN, PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, a.BANK_ID, WITH_BANK, BANK_NAME, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, 
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, NAPAS_FEE, DEBIT, CREDIT, OD_BY,ADJ_FEE,
-            NP_ADJ_FEE,MERCHANT_TYPE,STEP,Sett_From, Sett_To,BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,FEE_TYPE,SUB_BANK,'DOMESTIC', LIQUIDITY,SERVICE_TYPE
+            NP_ADJ_FEE,MERCHANT_TYPE,STEP,STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y'), STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y'),BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,FEE_TYPE,SUB_BANK,'DOMESTIC', LIQUIDITY,SERVICE_TYPE
         From TCKT_NAPAS_IBFT A
         ;
         
@@ -3167,25 +3305,32 @@ BEGIN
         Select MSGTYPE_DETAIL,NAPAS_SETT_DATE, NAPAS_TIME, USER_SETT, EDIT_NOTE, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY,
             RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, BANK_NAME, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, 
             DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, NAPAS_FEE, DEBIT,
-            CREDIT, OD_BY, ADJ_FEE, Sysdate,NP_ADJ_FEE,MERCHANT_TYPE,STEP,SETTLEMENT_DATE_FROM,SETTLEMENT_DATE_TO,BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,FEE_TYPE,SUB_BANK,DATA_TYPE,LIQUIDITY,SERVICE_TYPE
+            CREDIT, OD_BY, ADJ_FEE, NOW(),NP_ADJ_FEE,MERCHANT_TYPE,STEP,SETTLEMENT_DATE_FROM,SETTLEMENT_DATE_TO,BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,FEE_TYPE,SUB_BANK,DATA_TYPE,LIQUIDITY,SERVICE_TYPE
         From NAPAS_FEE_MONTH
-        Where NAPAS_TIME between  Trunc(Sysdate)  and  Trunc(Sysdate) + 1 - 1/86400
+        Where NAPAS_TIME between  DATE(NOW())  and  DATE(NOW()) + 1 - 1/86400
         And DATA_TYPE = 'DOMESTIC'
         And SERVICE_TYPE ='IBFT'; 
                   
     End If;
     
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
-    Values(sysdate,'0','End','NAPAS_MASTER_VIEW_DOMESTIC_IBFT');
-
-    commit;
+    Values(NOW(),'0','End','NAPAS_MASTER_VIEW_DOMESTIC_IBFT');
 
 EXCEPTION WHEN OTHERS THEN 
     ecode := SQLCODE;
     emesg := '-'||SQLERRM;
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE,CRITICAL)
-    Values(sysdate,ecode,emesg,'NAPAS_MASTER_VIEW_DOMESTIC_IBFT',2);
-    vDetail := 'Co loi tong hop bao cao ' || ecode || '-' || substr(emesg, 1, 120);
-    SEND_SMS('ALERT_ERR#' || vlistsms || '#' || vDetail);
+    Values(NOW(),ecode,emesg,'NAPAS_MASTER_VIEW_DOMESTIC_IBFT',2);
+    vDetail := 'Co loi tong hop bao cao ' || ecode || '-' || SUBSTRING(emesg, 1, 120);
+    SEND_SMS('ALERT_ERR#' || :LIST_SMS || '#' || vDetail);
 END;
 /
+""";
+
+    // placeholder for missing step 3
+    private static final String STEP_03_SQL = "";
+
+    // placeholder for missing step 7
+    private static final String STEP_07_SQL = "";
+
+}

@@ -9,5 +9,6 @@ public class TableConstant {
 	public static String ZEN_FEE_VALUE_IBFT = "ZEN_FEE_VALUE_IBFT";
 	public static String ZEN_CONFIG_FEE_IBFT = "ZEN_CONFIG_FEE_IBFT";
 	public static String SHCLOG_SETT_IBFT_ADJUST = "SHCLOG_SETT_IBFT_ADJUST";
+	public static String TCKT_NAPAS_IBFT = "TCKT_NAPAS_IBFT";
 	public static String shemaName = "test";
 }
