@@ -1825,6 +1825,10 @@ BEGIN
         Else 0 End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+
+
+
+
 	--step 10
     -- ACQ-ISS
     Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
@@ -2202,6 +2206,9 @@ BEGIN
         End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+
+
+    
 
 	--step 11
     -- ISS-BEN

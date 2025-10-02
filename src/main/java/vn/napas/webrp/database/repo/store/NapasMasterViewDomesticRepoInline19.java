@@ -1215,1730 +1215,1911 @@ public class NapasMasterViewDomesticRepoInline19 {
 
 	// lines 1119-1409
 	private static final String STEP_08_SQL = """
-				--step 8
-			    -- BEN-ISS
-			    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
-			            SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			            DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
-			            NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE,MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
-			    Select Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End SETT_DATE,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End As EDIT_DATE,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End  As SETTLEMENT_CURRENCY, RESPCODE,
-			        Case
-			            When Pcode2 in (920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End As GROUP_TRAN, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When Pcode2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+							/*step 8 BEN-ISS */
+			INSERT INTO TCKT_NAPAS_IBFT (
+			    SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+			    SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
+			    DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			    NAPAS_FEE, ADJ_FEE, NP_ADJ_FEE, MERCHANT_TYPE, STEP, FEE_TYPE, LIQUIDITY
+			)
+			SELECT
+			    /* SETT_DATE */
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END AS SETT_DATE,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			            WHEN DATE(Edit_Date) < :sett_from THEN :sett_from
+			            ELSE DATE(Edit_Date)
+			        END
+			    END AS EDIT_DATE,
 
-			            Else 'POS'
-			        End As TRAN_TYPE,
-			        'SWITCH' As SERVICE_CODE,
-			        'BEN-ISS' As GROUP_ROLE,
-			        BB_BIN As BANK_ID,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When ISSUER_RP In (605609) Then Issuer_Rp
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(Issuer_Rp)
-			            Else 0
-			        End As WITH_BANK,
-			        0 As DB_TOTAL_TRAN,
-			        0 AS DB_AMOUNT,
-			        SUM(Case When FEE_IRF_BEN < 0 Then -FEE_IRF_BEN Else 0 End)  As DB_IR_FEE,
-			        0 As DB_SV_FEE,
-			        0 As DB_TOTAL_FEE,
-			        0 As DB_TOTAL_MONEY,
-			        Count(*) As CD_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                Else AMOUNT
-			            End
-			        ) As CD_AMOUNT,
-			        SUM(Case
-			            When Case When Pcode = '48' Then 0 Else Case When FEE_IRF_BEN > 0 Then FEE_IRF_BEN Else 0 End End > 0
-			            Then Case When Pcode = '48' Then 0 Else Case When FEE_IRF_BEN > 0 Then FEE_IRF_BEN Else 0 End End
-			            Else 0
-			        End) As CD_IR_FEE,
-			        -SUM(FEE_SVF_BEN) As CD_SV_FEE,
-			        0 As CD_TOTAL_MONEY,
-			        0 As NAPAS_FEE,
-			        0 As ADJ_FEE,
-			        0 As NP_ADJ_FEE,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End MERCHANT_TYPE,'A-BY_ROLE',
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End as FEE_TYPE,
-			        Case When Max(B.COLUMN_VALUE) Is Null And Max(C.COLUMN_VALUE) Is Null And Max(D.COLUMN_VALUE) Is Null Then 'Y' Else 'N' End
-			    From SHCLOG_SETT_IBFT A
-			    Left Join Table(GET_LIQUIDITY_BANK) B
-			        On A.ISSUER_RP = B.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) C
-			        On A.ACQUIRER_RP = C.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) D
-			        On A.BB_BIN = D.COLUMN_VALUE
-			    Where
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END AS SETTLEMENT_CURRENCY,
+
+			    RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR'
+			        WHEN Pcode2 = 890000 THEN 'QRPAY'
+			        WHEN Pcode2 = 720000 THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000 THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN PCODE2 = 930000 THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END AS GROUP_TRAN,
+
+			    PCODE,
+
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN PCode2 = 890000 THEN 'QRC'
+			        WHEN PCode2 = 720000 THEN 'CAOT'
+			        WHEN PCode2 = 730000 THEN 'EFTC'
+			        WHEN PCode2 = 810000 THEN 'CA5'
+			        WHEN PCode2 = 820000 THEN 'CA4'
+			        WHEN PCode2 = 830000 THEN 'CA2'
+			        WHEN PCode2 = 840000 THEN 'SSP_ON'
+			        WHEN PCode2 = 850000 THEN 'SSP_OFF'
+			        WHEN PCode2 = 860000 THEN 'CA1'
+			        WHEN PCode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END AS TRAN_TYPE,
+
+			    'SWITCH'  AS SERVICE_CODE,
+			    'BEN-ISS' AS GROUP_ROLE,
+
+			    /* BANK_ID */
+			    BB_BIN AS BANK_ID,
+
+			    /* WITH_BANK – Cách B: NOT EXISTS (thay GET_QRC_WITH(Issuer_Rp)) */
+			    CASE
+			        WHEN PCode2 = 920000 THEN 764000
+			        WHEN ISSUER_RP IN (605609) THEN ISSUER_RP
+			        WHEN Pcode2 IN (720000,730000,890000) THEN
+			            CASE
+			                WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			                THEN A.ISSUER_RP
+			                ELSE 0
+			            END
+			        ELSE 0
+			    END AS WITH_BANK,
+
+			    /* DB_* đều 0 ở step này */
+			    0 AS DB_TOTAL_TRAN,
+			    0 AS DB_AMOUNT,
+			    SUM(CASE WHEN FEE_IRF_BEN < 0 THEN -FEE_IRF_BEN ELSE 0 END) AS DB_IR_FEE,
+			    0 AS DB_SV_FEE,
+			    0 AS DB_TOTAL_FEE,
+			    0 AS DB_TOTAL_MONEY,
+
+			    /* CD_* */
+			    COUNT(*) AS CD_TOTAL_TRAN,
+			    SUM(
+			        CASE
+			            WHEN Respcode IN (112,114) THEN IFNULL(PREAMOUNT,0)
+			            ELSE AMOUNT
+			        END
+			    ) AS CD_AMOUNT,
+			    SUM(
+			        CASE
+			            WHEN Pcode = '48' THEN 0
+			            ELSE CASE WHEN FEE_IRF_BEN > 0 THEN FEE_IRF_BEN ELSE 0 END
+			        END
+			    ) AS CD_IR_FEE,
+			    -SUM(FEE_SVF_BEN) AS CD_SV_FEE,
+
+			    0 AS CD_TOTAL_MONEY,
+			    0 AS NAPAS_FEE,
+			    0 AS ADJ_FEE,
+			    0 AS NP_ADJ_FEE,
+
+			    /* MERCHANT_TYPE */
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END AS MERCHANT_TYPE,
+
+			    'A-BY_ROLE' AS STEP,
+
+			    /* FEE_TYPE */
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END AS FEE_TYPE,
+
+			    /* LIQUIDITY */
+			    CASE
+			        WHEN MAX(b.bank_id) IS NULL AND MAX(c.bank_id) IS NULL AND MAX(d.bank_id) IS NULL THEN 'Y'
+			        ELSE 'N'
+			    END AS LIQUIDITY
+
+			FROM SHCLOG_SETT_IBFT A
+			LEFT JOIN GET_LIQUIDITY_BANK b ON A.ISSUER_RP   = b.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK c ON A.ACQUIRER_RP = c.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK d ON A.BB_BIN      = d.bank_id
+			WHERE
 			    (
-			        (Respcode = 0 And Isrev is null)
-			        Or
-			        Respcode In (110,112,113,114,115)
+			        (Respcode = 0 AND Isrev IS NULL)
+			        OR Respcode IN (110,112,113,114,115)
 			    )
-			    And Fee_Note Is not null
-			    And Msgtype = 210
-			    And Pcode In ('41','42','43','48','91')
-			    Group By Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End , RESPCODE,
-			        Case
-			            When Pcode2 in (920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			    AND Fee_Note IS NOT NULL
+			    AND Msgtype = 210
+			    AND Pcode IN ('41','42','43','48','91')
+			GROUP BY
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END,
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			            WHEN DATE(Edit_Date) < :sett_from THEN :sett_from
+			            ELSE DATE(Edit_Date)
+			        END
+			    END,
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END,
+			    RESPCODE,
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR'
+			        WHEN Pcode2 = 890000 THEN 'QRPAY'
+			        WHEN Pcode2 = 720000 THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000 THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN PCODE2 = 930000 THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END,
+			    PCODE,
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN PCode2 = 890000 THEN 'QRC'
+			        WHEN PCode2 = 720000 THEN 'CAOT'
+			        WHEN PCode2 = 730000 THEN 'EFTC'
+			        WHEN PCode2 = 810000 THEN 'CA5'
+			        WHEN PCode2 = 820000 THEN 'CA4'
+			        WHEN PCode2 = 830000 THEN 'CA2'
+			        WHEN PCode2 = 840000 THEN 'SSP_ON'
+			        WHEN PCode2 = 850000 THEN 'SSP_OFF'
+			        WHEN PCode2 = 860000 THEN 'CA1'
+			        WHEN PCode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END,
+			    BB_BIN,
+			    /* WITH_BANK (NOT EXISTS) */
+			    CASE
+			        WHEN PCode2 = 920000 THEN 764000
+			        WHEN ISSUER_RP IN (605609) THEN ISSUER_RP
+			        WHEN Pcode2 IN (720000,730000,890000) THEN
+			            CASE
+			                WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			                THEN A.ISSUER_RP
+			                ELSE 0
+			            END
+			        ELSE 0
+			    END,
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END,
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END;
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
-
-			            Else 'POS'
-			        End,
-			        BB_BIN,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When ISSUER_RP In (605609) Then Issuer_Rp
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(Issuer_Rp)
-			            Else 0
-			        End,
-			        Case When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End,
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End,
-			        Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
-			    ;
-			    -- End: Ket thuc phan do du lieu giao dich thanh cong tu SHCLOG_SET_IBFT vao TCKT_NAPAS_IBFT
-			    --- Begin: Bat dau do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
-			""";
+						""";
 
 	// lines 1410-1817
 	private static final String STEP_09_SQL = """
-				--step 9
-			    -- ISS-ACQ
-			    Insert   Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
-			            SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			            DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
-			            NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_SUM, BC_CL_ADJ, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
-			    Select MSGTYPE_DETAIL,Case
-			                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
-			                Else null
-			           End,
-			           Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End  SETT_DATE,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End As EDIT_DATE,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End As SETTLEMENT_CURRENCY, RESPCODE,
-			        Case
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End As GROUP_TRAN,
-			        Case
-			            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
-			            When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			                967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-			                966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
-			            Else PCODE
-			        End,
-			        Case
-			            When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 in (840000,968400,978400,988400,998400) Then 'SSP_ON'
-			            When PCode2 in (850000,968500,978500,988500,998500) Then 'SSP_OFF'
-			            When PCode2 in (780000,967800,977800,987800,997800) Then 'BP_ON'
-			            When PCode2 in (790000,967900,979500,988500,997900) Then 'BP_OFF'
-			            When PCode2 in (610000,966100,976100,986100,996100) Then 'APPLEPAY_ON'
-			            When PCode2 in (620000,966200,976200,986200,996200) Then 'APPLEPAY_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			/* STEP 9: ISS-ACQ (TiDB/MySQL) */
+			INSERT INTO TCKT_NAPAS_IBFT(
+			    MSGTYPE_DETAIL, SUB_BANK, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE,
+			    GROUP_TRAN, PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK,
+			    DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY,
+			    CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			    NAPAS_FEE, ADJ_FEE, NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_SUM, BC_CL_ADJ,
+			    STEP, FEE_TYPE, PART_FE, LIQUIDITY
+			)
+			SELECT
+			    A.MSGTYPE_DETAIL,
+			    CASE
+			        WHEN A.ISSUER_RP = 970426 AND SUBSTRING(TRIM(A.PAN),1,8) = '97046416' THEN 970464
+			        ELSE NULL
+			    END AS SUB_BANK,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
-			            Else 'POS'
-			        End As TRAN_TYPE,
-			        'SWITCH' As SERVICE_CODE,
-			        'ISS-ACQ' As GROUP_ROLE,
-			        ISSUER_RP As BANK_ID,
-			        Case
-			            When acquirer_rp In (220699, 602907, 605609, GET_BCCARD_ID()) Then Acquirer_Rp
-			            When PCode2 In (810000,820000,830000,860000,870000) Then 999999
-			            Else 0
-			        End As WITH_BANK,
-			        Sum(Case When Pcode In ('42','91') Then 0 Else 1 End) As DB_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Pcode In ('00','01','40','20') Then
-			                    Case
-			                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
-			                        When PCODE = '20' Then -AMOUNT
-			                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                        Else
+			    CASE
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN A.SETTLEMENT_DATE
+			        ELSE NULL
+			    END AS SETT_DATE,
 
-			                            Case
-			                                When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
-			                                Else
-			                                    AMOUNT
-			                            End
+			    CASE
+			        WHEN A.RESPCODE = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(A.EDIT_DATE) < :sett_from THEN :sett_from
+			                 ELSE DATE(A.EDIT_DATE)
+			             END
+			    END AS EDIT_DATE,
 
-			                    End
-			                 Else 0
-			            End
-			        ) AS DB_AMOUNT,
-			        SUM(
-			            Case
-			                When FEE_IRF_ISS < 0 Then -FEE_IRF_ISS Else 0
-			            End
-			        ) As DB_IR_FEE,
-			        -SUM(
-			            Case
-			                When Pcode In ('42','91') Then 0
-			                Else FEE_SVF_ISS
-			            End
-			        ) As DB_SV_FEE,
-			        0 As DB_TOTAL_FEE,
-			        0 As DB_TOTAL_MONEY,
-			        0 As CD_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Pcode In ('40') Then
-			                    Case
-			                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                        Else
-			                            Case
-			                                When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
-			                                Else
-			                                    AMOUNT
-			                            End
-			                    End
-			                 Else 0
-			            End
-			        ) As CD_AMOUNT,
-			        SUM(
-			            Case
-			                When FEE_IRF_ISS > 0 And CASE Pcode2 WHEN null THEN 0 ELSE Pcode2 END not in (890000,720000)
-			                    Then FEE_IRF_ISS
-			                Else 0
-			            End
-			        ) As CD_IR_FEE,
-			        SUM(Case When FEE_SVF_ISS < 0 Then 0 Else FEE_SVF_ISS End)  As CD_SV_FEE,
-			        SUM(
-			            Case
-			                When Pcode In ('40') Then
-			                    Case
-			                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                        Else
-			                            Case
-			                                When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
-			                                Else
-			                                    AMOUNT
-			                            End
-			                    End
-			                 Else 0
-			            End
-			        ) As CD_TOTAL_MONEY,
-			        0 As NAPAS_FEE,
-			        Sum(
-			            Case
-			                When Acquirer = 220699 And Merchant_Type = 6011 And Pcode In ('01','30') Then FEE_IRF_ACQ
-			                When ISSUER = 220699 And Merchant_Type = 6011 And Pcode In ('01','30') Then FEE_IRF_ACQ
-			                Else 0
-			            End
-			        ) ADJ_FEE,
-			        0 As NP_ADJ_FEE,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			            967800,977800,987800,997800,967900,977900,987900,997900,
-			            966100,976100,986100,996100,966200,976200,986200,996200) Then MERCHANT_TYPE_ORIG
-			        When Pcode = 0 And Merchant_type_orig in (4111, 4131,5172,9211, 9222, 9223, 9311, 9399,8398,7523,7524,5541,5542) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End MERCHANT_TYPE,
-			        SUM(
-			            Case
-			                When Issuer_Rp = 600005 And Merchant_Type = 6011 Then FEE_IRF_ISS
-			                When Issuer_Rp = 600005 And Merchant_Type = 6012 Then FEE_IRF_ISS
-			                When Issuer_Rp = 600006 And Merchant_Type = 6012 Then FEE_IRF_ISS
-			                When Issuer_Rp = 600007 Then FEE_IRF_ISS
-			                Else 0
-			            End
-			        ) BC_NP_SUM,
-			         Sum(Case When Issuer_Rp In (600005,600007) Then FEE_IRF_ISS Else 0 End) BC_CL_ADJ
-			        ,
-			        'A-BY_ROLE',
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End As FEE_TYPE,
-			        Case
-			        When Msgtype = 430 And Respcode = 114 Then 1
-			        When Msgtype = 210 And Respcode in (112,114)  And Is_part_rev = 430 then 1
-			        Else 0 End As PART_FE,
-			        Case When Max(B.COLUMN_VALUE) Is Null And Max(C.COLUMN_VALUE) Is Null And Max(D.COLUMN_VALUE) Is Null Then 'Y' Else 'N' End
-			    From SHCLOG_SETT_IBFT_ADJUST A
-			    Left Join Table(GET_LIQUIDITY_BANK) B
-			        On A.ISSUER_RP = B.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) C
-			        On A.ACQUIRER_RP = C.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) D
-			        On A.BB_BIN = D.COLUMN_VALUE
-			    Where
-			    (
-			        (Respcode = 0 And Isrev = 0)
-			        Or
-			        Respcode In (110,112,113,114,115)
-			    )
-			    And Fee_Note Is not null
-			    And
-			        (
-			            (
-			                PCODE2 Is Null And Pcode In ('00','01','30','35','40','41','42','43','48','94','03','20')  -- Sua lay theo pcode
-			            )
-			            Or
-			            (
-			                PCODE2 Is Not Null And Pcode In ('00','01','30','35','40','41','42','43','48','94','91','03','20')
-			            )
+			    CASE
+			        WHEN A.ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN A.ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END AS SETTLEMENT_CURRENCY,
+
+			    A.RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN A.PCODE2 = 890000 THEN 'QRPAY'
+			        WHEN A.PCODE2 = 720000 THEN 'E-Wallet'
+			        WHEN A.PCODE2 = 730000 THEN 'EFT'
+			        WHEN A.PCODE IN ('43') AND A.PCODE2 IS NULL THEN 'CBFT'
+			        WHEN A.PCODE2 = 930000 THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') = 'IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','42','48','91') THEN 'IBFT'
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END AS GROUP_TRAN,
+
+			    /* PCODE out */
+			    CASE
+			        WHEN A.ISSUER_RP = 602907
+			            THEN IFNULL(A.PCODE_ORIG, SUBSTRING(LPAD(CAST(A.PCODE AS CHAR),2,'0'),1,2))
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967700,977700,987700,997700,
+			            967800,977800,987800,997800,967900,977900,987900,997900,966100,976100,986100,996100,
+			            966200,976200,986200,996200
 			        )
+			            THEN CONCAT(A.PCODE, A.PCODE2)
+			        ELSE A.PCODE
+			    END AS PCODE,
 
-			    Group By MSGTYPE_DETAIL,Case
-			                When ISSUER_RP = 970426 And SUBSTRING(Trim(PAN),0,8) ='97046416' Then 970464
-			                Else null
-			           End,
-			            Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End , RESPCODE,
-			        Case
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','42','48','91')  Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End,
-			        Case
-			            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
-			            When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			                967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-			                966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
-			            Else PCODE
-			        End,
-			        Case
-			            When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 in (840000,968400,978400,988400,998400) Then 'SSP_ON'
-			            When PCode2 in (850000,968500,978500,988500,998500) Then 'SSP_OFF'
-			            When PCode2 in (780000,967800,977800,987800,997800) Then 'BP_ON'
-			            When PCode2 in (790000,967900,979500,988500,997900) Then 'BP_OFF'
-			            When PCode2 in (610000,966100,976100,986100,996100) Then 'APPLEPAY_ON'
-			            When PCode2 in (620000,966200,976200,986200,996200) Then 'APPLEPAY_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                Pcode2 Is Null
-			                                Or
-			                                CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                              ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN A.PCODE2 IN (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) THEN 'TRANSIT'
+			        WHEN A.PCODE2 = 890000 THEN 'QRC'
+			        WHEN A.PCODE2 = 720000 THEN 'CAOT'
+			        WHEN A.PCODE2 = 730000 THEN 'EFTC'
+			        WHEN A.PCODE2 = 810000 THEN 'CA5'
+			        WHEN A.PCODE2 = 820000 THEN 'CA4'
+			        WHEN A.PCODE2 = 830000 THEN 'CA2'
+			        WHEN A.PCODE2 IN (840000,968400,978400,988400,998400) THEN 'SSP_ON'
+			        WHEN A.PCODE2 IN (850000,968500,978500,988500,998500) THEN 'SSP_OFF'
+			        WHEN A.PCODE2 IN (780000,967800,977800,987800,997800) THEN 'BP_ON'
+			        WHEN A.PCODE2 IN (790000,967900,979500,988500,997900) THEN 'BP_OFF'
+			        WHEN A.PCODE2 IN (610000,966100,976100,986100,996100) THEN 'APPLEPAY_ON'
+			        WHEN A.PCODE2 IN (620000,966200,976200,986200,996200) THEN 'APPLEPAY_OFF'
+			        WHEN A.PCODE2 = 860000 THEN 'CA1'
+			        WHEN A.PCODE2 = 870000 THEN 'CA3'
+			        WHEN A.PCODE2 = 930000 THEN 'QR_IBFT'
+			        WHEN A.PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN A.MERCHANT_TYPE = 6011 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'ATM'
+			        WHEN A.MERCHANT_TYPE = 6013 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'SMS'
+			        WHEN A.MERCHANT_TYPE = 6014 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'INT'
+			        WHEN A.MERCHANT_TYPE = 6015 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'MOB'
+			        WHEN IFNULL(A.FROM_SYS,'IST')='IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END AS TRAN_TYPE,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    'SWITCH' AS SERVICE_CODE,
+			    'ISS-ACQ' AS GROUP_ROLE,
 
-			            Else 'POS'
-			        End,
-			        ISSUER_RP,
-			        Case
-			            When acquirer_rp In (220699, 602907, 605609, GET_BCCARD_ID()) Then Acquirer_Rp
-			            When PCode2 In (810000,820000,830000,860000,870000) Then 999999
-			            Else 0
-			        End,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			            967800,977800,987800,997800,967900,977900,987900,997900,
-			            966100,976100,986100,996100,966200,976200,986200,996200) Then MERCHANT_TYPE_ORIG
-			        When Pcode = 0 And Merchant_type_orig in (4111, 4131,5172,9211, 9222, 9223, 9311, 9399,8398,7523,7524,5541,5542) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End,
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End,
-			        Case
-			        When Msgtype = 430 And Respcode = 114 Then 1
-			        When Msgtype = 210 And Respcode in (112,114)  And Is_part_rev = 430 then 1
-			        Else 0 End,
-			        Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
-			    ;
-			""";
+			    A.ISSUER_RP AS BANK_ID,
+
+			    /* WITH_BANK dùng :bccard_id + NOT EXISTS TGTT_CONFIG */
+			    CASE
+			        WHEN A.ACQUIRER_RP IN (220699,602907,605609,:bccard_id) THEN A.ACQUIRER_RP
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 999999
+			        ELSE CASE
+			               WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			               THEN A.ISSUER_RP
+			               ELSE 0
+			             END
+			    END AS WITH_BANK,
+
+			    /* --- DB/CD & FEE AGGs --- */
+			    SUM(CASE WHEN A.PCODE IN ('42','91') THEN 0 ELSE 1 END) AS DB_TOTAL_TRAN,
+
+			    SUM(
+			        CASE
+			            WHEN A.PCODE IN ('00','01','40','20') THEN
+			                CASE
+			                    WHEN A.PCODE = '20' AND A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0) * -1
+			                    WHEN A.PCODE = '20' THEN -A.AMOUNT
+			                    WHEN A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0)
+			                    ELSE CASE
+			                             WHEN A.ACQ_CURRENCY_CODE = 418 THEN A.SETTLEMENT_AMOUNT
+			                             ELSE A.AMOUNT
+			                         END
+			                END
+			            ELSE 0
+			        END
+			    ) AS DB_AMOUNT,
+
+			    SUM(CASE WHEN A.FEE_IRF_ISS < 0 THEN -A.FEE_IRF_ISS ELSE 0 END) AS DB_IR_FEE,
+
+			    -SUM(CASE WHEN A.PCODE IN ('42','91') THEN 0 ELSE A.FEE_SVF_ISS END) AS DB_SV_FEE,
+
+			    0 AS DB_TOTAL_FEE,
+			    0 AS DB_TOTAL_MONEY,
+			    0 AS CD_TOTAL_TRAN,
+
+			    SUM(
+			        CASE
+			            WHEN A.PCODE IN ('40') THEN
+			                CASE
+			                    WHEN A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0)
+			                    ELSE CASE
+			                             WHEN A.ACQ_CURRENCY_CODE = 418 THEN A.SETTLEMENT_AMOUNT
+			                             ELSE A.AMOUNT
+			                         END
+			                END
+			            ELSE 0
+			        END
+			    ) AS CD_AMOUNT,
+
+			    SUM(
+			        CASE
+			            WHEN A.FEE_IRF_ISS > 0 AND IFNULL(A.PCODE2,0) NOT IN (890000,720000) THEN A.FEE_IRF_ISS
+			            ELSE 0
+			        END
+			    ) AS CD_IR_FEE,
+
+			    SUM(CASE WHEN A.FEE_SVF_ISS < 0 THEN 0 ELSE A.FEE_SVF_ISS END) AS CD_SV_FEE,
+
+			    SUM(
+			        CASE
+			            WHEN A.PCODE IN ('40') THEN
+			                CASE
+			                    WHEN A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0)
+			                    ELSE CASE
+			                             WHEN A.ACQ_CURRENCY_CODE = 418 THEN A.SETTLEMENT_AMOUNT
+			                             ELSE A.AMOUNT
+			                         END
+			                END
+			            ELSE 0
+			        END
+			    ) AS CD_TOTAL_MONEY,
+
+			    0 AS NAPAS_FEE,
+
+			    /* ADJ_FEE */
+			    SUM(
+			        CASE
+			            WHEN A.ACQUIRER = 220699 AND A.MERCHANT_TYPE = 6011 AND A.PCODE IN ('01','30') THEN A.FEE_IRF_ACQ
+			            WHEN A.ISSUER   = 220699 AND A.MERCHANT_TYPE = 6011 AND A.PCODE IN ('01','30') THEN A.FEE_IRF_ACQ
+			            ELSE 0
+			        END
+			    ) AS ADJ_FEE,
+
+			    0 AS NP_ADJ_FEE,
+
+			    /* MERCHANT_TYPE out */
+			    CASE
+			        WHEN A.PCODE IN ('41','42','48','91') THEN A.MERCHANT_TYPE
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967800,977800,987800,997800,
+			            967900,977900,987900,997900,966100,976100,986100,996100,966200,976200,986200,996200
+			        ) THEN A.MERCHANT_TYPE_ORIG
+			        WHEN A.PCODE = 0 AND A.MERCHANT_TYPE_ORIG IN (4111,4131,5172,9211,9222,9223,9311,9399,8398,7523,7524,5541,5542)
+			            THEN A.MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END AS MERCHANT_TYPE,
+
+			    /* BC_NP_SUM & BC_CL_ADJ */
+			    SUM(
+			        CASE
+			            WHEN A.ISSUER_RP = 600005 AND A.MERCHANT_TYPE = 6011 THEN A.FEE_IRF_ISS
+			            WHEN A.ISSUER_RP = 600005 AND A.MERCHANT_TYPE = 6012 THEN A.FEE_IRF_ISS
+			            WHEN A.ISSUER_RP = 600006 AND A.MERCHANT_TYPE = 6012 THEN A.FEE_IRF_ISS
+			            WHEN A.ISSUER_RP = 600007 THEN A.FEE_IRF_ISS
+			            ELSE 0
+			        END
+			    ) AS BC_NP_SUM,
+
+			    SUM(CASE WHEN A.ISSUER_RP IN (600005,600007) THEN A.FEE_IRF_ISS ELSE 0 END) AS BC_CL_ADJ,
+
+			    'A-BY_ROLE' AS STEP,
+
+			    /* FEE_TYPE */
+			    CASE
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 IN (910000,930000,950000) AND A.ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END AS FEE_TYPE,
+
+			    /* PART_FE */
+			    CASE
+			        WHEN A.MSGTYPE = 430 AND A.RESPCODE = 114 THEN 1
+			        WHEN A.MSGTYPE = 210 AND A.RESPCODE IN (112,114) AND A.IS_PART_REV = 430 THEN 1
+			        ELSE 0
+			    END AS PART_FE,
+
+			    /* LIQUIDITY: có trong 3 join hay không */
+			    CASE
+			        WHEN MAX(b.bank_id) IS NULL AND MAX(c.bank_id) IS NULL AND MAX(d.bank_id) IS NULL THEN 'Y'
+			        ELSE 'N'
+			    END AS LIQUIDITY
+
+			FROM SHCLOG_SETT_IBFT_ADJUST A
+			LEFT JOIN GET_LIQUIDITY_BANK b ON A.ISSUER_RP   = b.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK c ON A.ACQUIRER_RP = c.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK d ON A.BB_BIN      = d.bank_id
+			WHERE
+			    (
+			        (A.RESPCODE = 0 AND A.ISREV = 0)
+			        OR A.RESPCODE IN (110,112,113,114,115)
+			    )
+			    AND A.FEE_NOTE IS NOT NULL
+			    AND (
+			        (A.PCODE2 IS NULL    AND A.PCODE IN ('00','01','30','35','40','41','42','43','48','94','03','20'))
+			        OR
+			        (A.PCODE2 IS NOT NULL AND A.PCODE IN ('00','01','30','35','40','41','42','43','48','94','91','03','20'))
+			    )
+			GROUP BY
+			    A.MSGTYPE_DETAIL,
+			    CASE WHEN A.ISSUER_RP = 970426 AND SUBSTRING(TRIM(A.PAN),1,8) = '97046416' THEN 970464 ELSE NULL END,
+
+			    CASE
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN A.SETTLEMENT_DATE
+			        ELSE NULL
+			    END,
+
+			    CASE
+			        WHEN A.RESPCODE = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(A.EDIT_DATE) < :sett_from THEN :sett_from
+			                 ELSE DATE(A.EDIT_DATE)
+			             END
+			    END,
+
+			    CASE
+			        WHEN A.ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN A.ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END,
+
+			    A.RESPCODE,
+
+			    /* GROUP BY cho GROUP_TRAN */
+			    CASE
+			        WHEN A.PCODE2 = 890000 THEN 'QRPAY'
+			        WHEN A.PCODE2 = 720000 THEN 'E-Wallet'
+			        WHEN A.PCODE2 = 730000 THEN 'EFT'
+			        WHEN A.PCODE IN ('43') AND A.PCODE2 IS NULL THEN 'CBFT'
+			        WHEN A.PCODE2 = 930000 THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') = 'IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','42','48','91') THEN 'IBFT'
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END,
+
+			    /* GROUP BY cho PCODE out */
+			    CASE
+			        WHEN A.ISSUER_RP = 602907
+			            THEN IFNULL(A.PCODE_ORIG, SUBSTRING(LPAD(CAST(A.PCODE AS CHAR),2,'0'),1,2))
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967700,977700,987700,997700,
+			            967800,977800,987800,997800,967900,977900,987900,997900,966100,976100,986100,996100,
+			            966200,976200,986200,996200
+			        )
+			            THEN CONCAT(A.PCODE, A.PCODE2)
+			        ELSE A.PCODE
+			    END,
+
+			    /* GROUP BY cho TRAN_TYPE */
+			    CASE
+			        WHEN A.PCODE2 IN (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) THEN 'TRANSIT'
+			        WHEN A.PCODE2 = 890000 THEN 'QRC'
+			        WHEN A.PCODE2 = 720000 THEN 'CAOT'
+			        WHEN A.PCODE2 = 730000 THEN 'EFTC'
+			        WHEN A.PCODE2 = 810000 THEN 'CA5'
+			        WHEN A.PCODE2 = 820000 THEN 'CA4'
+			        WHEN A.PCODE2 = 830000 THEN 'CA2'
+			        WHEN A.PCODE2 IN (840000,968400,978400,988400,998400) THEN 'SSP_ON'
+			        WHEN A.PCODE2 IN (850000,968500,978500,988500,998500) THEN 'SSP_OFF'
+			        WHEN A.PCODE2 IN (780000,967800,977800,987800,997800) THEN 'BP_ON'
+			        WHEN A.PCODE2 IN (790000,967900,979500,988500,997900) THEN 'BP_OFF'
+			        WHEN A.PCODE2 IN (610000,966100,976100,986100,996100) THEN 'APPLEPAY_ON'
+			        WHEN A.PCODE2 IN (620000,966200,976200,986200,996200) THEN 'APPLEPAY_OFF'
+			        WHEN A.PCODE2 = 860000 THEN 'CA1'
+			        WHEN A.PCODE2 = 870000 THEN 'CA3'
+			        WHEN A.PCODE2 = 930000 THEN 'QR_IBFT'
+			        WHEN A.PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN A.MERCHANT_TYPE = 6011 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'ATM'
+			        WHEN A.MERCHANT_TYPE = 6013 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'SMS'
+			        WHEN A.MERCHANT_TYPE = 6014 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'INT'
+			        WHEN A.MERCHANT_TYPE = 6015 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'MOB'
+			        WHEN IFNULL(A.FROM_SYS,'IST')='IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END,
+
+			    /* BANK_ID */
+			    A.ISSUER_RP,
+
+			    /* GROUP BY cho WITH_BANK (cùng logic với SELECT) */
+			    CASE
+			        WHEN A.ACQUIRER_RP IN (220699,602907,605609,:bccard_id) THEN A.ACQUIRER_RP
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 999999
+			        ELSE CASE
+			               WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			               THEN A.ISSUER_RP
+			               ELSE 0
+			             END
+			    END,
+
+			    /* GROUP BY cho MERCHANT_TYPE out */
+			    CASE
+			        WHEN A.PCODE IN ('41','42','48','91') THEN A.MERCHANT_TYPE
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967800,977800,987800,997800,
+			            967900,977900,987900,997900,966100,976100,986100,996100,966200,976200,986200,996200
+			        ) THEN A.MERCHANT_TYPE_ORIG
+			        WHEN A.PCODE = 0 AND A.MERCHANT_TYPE_ORIG IN (4111,4131,5172,9211,9222,9223,9311,9399,8398,7523,7524,5541,5542)
+			            THEN A.MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END,
+
+			    /* GROUP BY cho FEE_TYPE (giống SELECT) */
+			    CASE
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 IN (910000,930000,950000) AND A.ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END,
+
+			    /* GROUP BY cho PART_FE */
+			    CASE
+			        WHEN A.MSGTYPE = 430 AND A.RESPCODE = 114 THEN 1
+			        WHEN A.MSGTYPE = 210 AND A.RESPCODE IN (112,114) AND A.IS_PART_REV = 430 THEN 1
+			        ELSE 0
+			    END
+			;
+
+						""";
 
 	// lines 1818-2195
 	private static final String STEP_10_SQL = """
-				--step 10
-			    -- ACQ-ISS
-			    Insert   Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
-			            SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			            DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
-			            NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_ADJ, BC_NP_SUM, STEP,FEE_TYPE,PART_FE,LIQUIDITY)
-			    Select MSGTYPE_DETAIL,Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End SETT_DATE,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End As EDIT_DATE,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End  As SETTLEMENT_CURRENCY, RESPCODE,
-			        Case
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End As GROUP_TRAN,
-			        Case
-			            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
-			            When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			                967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-			                966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
-			            Else PCODE
-			        End PCODE,
-			        Case
-			            When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 in (840000,968400,978400,988400,998400) Then 'SSP_ON'
-			            When PCode2 in (850000,968500,978500,988500,998500) Then 'SSP_OFF'
-			            When PCode2 in (780000,967800,977800,987800,997800) Then 'BP_ON'
-			            When PCode2 in (790000,967900,979500,988500,997900) Then 'BP_OFF'
-			            When PCode2 in (610000,966100,976100,986100,996100) Then 'APPLEPAY_ON'
-			            When PCode2 in (620000,966200,976200,986200,996200) Then 'APPLEPAY_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			/* STEP 10: ACQ-ISS (TiDB/MySQL) */
+			INSERT INTO TCKT_NAPAS_IBFT(
+			    MSGTYPE_DETAIL, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE,
+			    GROUP_TRAN, PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK,
+			    DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY,
+			    CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			    NAPAS_FEE, ADJ_FEE, NP_ADJ_FEE, MERCHANT_TYPE, BC_NP_ADJ, BC_NP_SUM,
+			    STEP, FEE_TYPE, PART_FE, LIQUIDITY
+			)
+			SELECT
+			    A.MSGTYPE_DETAIL,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    /* SETT_DATE */
+			    CASE
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN A.SETTLEMENT_DATE
+			        ELSE NULL
+			    END AS SETT_DATE,
 
-			            Else 'POS'
-			        End As TRAN_TYPE,
-			        'SWITCH' As SERVICE_CODE,
-			        'ACQ-ISS' As GROUP_ROLE,
-			        ACQUIRER_RP As BANK_ID,
-			        Case
-			            When ISSUER_RP In (220699, 602907, 605609,GET_BCCARD_ID(), 600005, 600006, 600007) Then ISSUER_RP
-			            When PCode2 In (810000, 820000, 830000, 860000, 870000) Then 999999
-			            Else 0
-			        End As WITH_BANK,
-			        0 As DB_TOTAL_TRAN,
-			        0 AS DB_AMOUNT,
-			        SUM(
-			            Case
-			                When ACQUIRER_RP = GET_BCCARD_ID() And FEE_IRF_ISS > 0 Then FEE_IRF_ISS
-			                When FEE_IRF_ACQ < 0 Then -FEE_IRF_ACQ Else 0
-			            End
-			        )  As DB_IR_FEE,
-			        0 As DB_SV_FEE,
-			        0 As DB_TOTAL_FEE,
-			        0 As DB_TOTAL_MONEY,
-			        SUM(
-			            Case
-			                When Pcode In ('41','42','43','48','91') Then 0
-			                Else 1
-			            End
-			        ) As CD_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Pcode In ('00','01','20') Then
-			                    Case
-			                        When PCODE = '20' And Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE -PREAMOUNT END
-			                        When PCODE = '20' Then -AMOUNT
-			                        When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                        Else
-			                            Case
-			                                When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
-			                                Else
-			                                    AMOUNT
-			                            End
-			                    End
-			                Else 0
-			                End
-			        ) As CD_AMOUNT,
-			        SUM(
-			            Case
-			                When Acquirer_Rp = GET_BCCARD_ID() And Merchant_Type = 6011 Then -FEE_IRF_ISS
-			                When FEE_IRF_ACQ > 0 And ACQUIRER_RP = GET_BCCARD_ID() And MERCHANT_TYPE <> 6011 Then FEE_IRF_ACQ
-			                When FEE_IRF_ACQ > 0 And ACQUIRER_RP = GET_BCCARD_ID() And MERCHANT_TYPE = 6011 Then 0
-			                When FEE_IRF_ACQ > 0 Then FEE_IRF_ACQ
-			                Else 0
-			            End
-			        ) As CD_IR_FEE,
-			        -SUM(FEE_SVF_ACQ) As CD_SV_FEE,
-			        0 As CD_TOTAL_MONEY,
-			        0 As NAPAS_FEE,
-			        0 As ADJ_FEE,
-			        Sum(
-			            Case
-			                When FEE_KEY = 'CFC85B5F-787B-437C-823F-79534D3B72BD' Then FEE_IRF_ACQ
-			                Else 0
-			            End
-			        ) NP_ADJ_FEE,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			            967800,977800,987800,997800,967900,977900,987900,997900,
-			            966100,976100,986100,996100,966200,976200,986200,996200) Then MERCHANT_TYPE_ORIG
-			        When Pcode = 0 And Merchant_type_orig in (4111, 4131,5172,9211, 9222, 9223, 9311, 9399,8398,7523,7524,5541,5542) Then MERCHANT_TYPE_ORIG
-			        Else Null End,
-			        -SUM(
-			            Case
-			                When Acquirer_Rp = GET_BCCARD_ID() And Merchant_Type = 6011 Then FEE_IRF_ISS
-			                When ACQUIRER_RP = GET_BCCARD_ID() And FEE_IRF_ISS > 0 And Merchant_Type <> 6011 Then FEE_IRF_ISS
-			                Else 0
-			            End
-			        )  As BC_NP_ADJ,
-			        SUM(
-			            Case
-			                When Acquirer_Rp = GET_BCCARD_ID() And Merchant_Type = 6011 Then -FEE_IRF_ISS
-			                When Acquirer_Rp = GET_BCCARD_ID() And Merchant_Type <> 6011 Then -FEE_IRF_ISS
-			                Else 0
-			            End
-			        ) BC_NP_SUM,
-			        'A-BY_ROLE',
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End as FEE_TYPE,
-			        Case
-			        When Msgtype = 430 And Respcode = 114 Then 1
-			        When Msgtype = 210 And Respcode in (112,114)  And Is_part_rev = 430 then 1
-			        Else 0
-			        End,
-			        Case When Max(B.COLUMN_VALUE) Is Null And Max(C.COLUMN_VALUE) Is Null And Max(D.COLUMN_VALUE) Is Null Then 'Y' Else 'N' End
-			    From SHCLOG_SETT_IBFT_ADJUST A
-			    Left Join Table(GET_LIQUIDITY_BANK) B
-			        On A.ISSUER_RP = B.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) C
-			        On A.ACQUIRER_RP = C.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) D
-			        On A.BB_BIN = D.COLUMN_VALUE
-			    Where
-			    (
-			        (Respcode = 0 And Isrev = 0)
-			        Or
-			        Respcode In (110,112,113,114,115)
-			    )
-			    And Fee_Note Is not null
-			    And
-			        (
-			            (
-			                PCODE2 Is Null And Pcode In ('00','01','30','35','40','41','42','43','48','94','03','20')  -- Sua lay theo pcode
-			            )
-			            Or
-			            (
-			                PCODE2 Is Not Null And Pcode In ('00','01','30','35','40','41','42','43','48','94','91','03','20')
-			            )
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN A.RESPCODE = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(A.EDIT_DATE) < :sett_from THEN :sett_from
+			                 ELSE DATE(A.EDIT_DATE)
+			             END
+			    END AS EDIT_DATE,
+
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN A.ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN A.ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END AS SETTLEMENT_CURRENCY,
+
+			    A.RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN A.PCODE2 = 890000 THEN 'QRPAY'
+			        WHEN A.PCODE2 = 720000 THEN 'E-Wallet'
+			        WHEN A.PCODE2 = 730000 THEN 'EFT'
+			        WHEN A.PCODE IN ('43') AND A.PCODE2 IS NULL THEN 'CBFT'
+			        WHEN A.PCODE2 = 930000 THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') = 'IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END AS GROUP_TRAN,
+
+			    /* PCODE out */
+			    CASE
+			        WHEN A.ISSUER_RP = 602907
+			            THEN IFNULL(A.PCODE_ORIG, SUBSTRING(LPAD(CAST(A.PCODE AS CHAR),2,'0'),1,2))
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967700,977700,987700,997700,
+			            967800,977800,987800,997800,967900,977900,987900,997900,966100,976100,986100,996100,
+			            966200,976200,986200,996200
 			        )
-			    Group By MSGTYPE_DETAIL,Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End , RESPCODE,
-			        Case
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
+			            THEN CONCAT(A.PCODE, A.PCODE2)
+			        ELSE A.PCODE
+			    END AS PCODE,
 
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End,
-			        Case
-			            When Issuer_Rp = 602907 Then CASE PCODE_ORIG WHEN null THEN SUBSTRING(Trim(DATE_FORMAT(PCODE,'09')),1,2) ELSE Pcode_Orig END
-			            When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			                967700,977700,987700,997700,967800,977800,987800,997800,967900,977900,987900,997900,
-			                966100,976100,986100,996100,966200,976200,986200,996200) Then PCODE||PCODE2
-			            Else PCODE
-			        End,
-			        Case
-			            When PCODE2 In (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) Then 'TRANSIT'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 in (840000,968400,978400,988400,998400) Then 'SSP_ON'
-			            When PCode2 in (850000,968500,978500,988500,998500) Then 'SSP_OFF'
-			            When PCode2 in (780000,967800,977800,987800,997800) Then 'BP_ON'
-			            When PCode2 in (790000,967900,979500,988500,997900) Then 'BP_OFF'
-			            When PCode2 in (610000,966100,976100,986100,996100) Then 'APPLEPAY_ON'
-			            When PCode2 in (620000,966200,976200,986200,996200) Then 'APPLEPAY_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN A.PCODE2 IN (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) THEN 'TRANSIT'
+			        WHEN A.PCODE2 = 890000 THEN 'QRC'
+			        WHEN A.PCODE2 = 720000 THEN 'CAOT'
+			        WHEN A.PCODE2 = 730000 THEN 'EFTC'
+			        WHEN A.PCODE2 = 810000 THEN 'CA5'
+			        WHEN A.PCODE2 = 820000 THEN 'CA4'
+			        WHEN A.PCODE2 = 830000 THEN 'CA2'
+			        WHEN A.PCODE2 IN (840000,968400,978400,988400,998400) THEN 'SSP_ON'
+			        WHEN A.PCODE2 IN (850000,968500,978500,988500,998500) THEN 'SSP_OFF'
+			        WHEN A.PCODE2 IN (780000,967800,977800,987800,997800) THEN 'BP_ON'
+			        WHEN A.PCODE2 IN (790000,967900,979500,988500,997900) THEN 'BP_OFF'
+			        WHEN A.PCODE2 IN (610000,966100,976100,986100,996100) THEN 'APPLEPAY_ON'
+			        WHEN A.PCODE2 IN (620000,966200,976200,986200,996200) THEN 'APPLEPAY_OFF'
+			        WHEN A.PCODE2 = 860000 THEN 'CA1'
+			        WHEN A.PCODE2 = 870000 THEN 'CA3'
+			        WHEN A.PCODE2 = 930000 THEN 'QR_IBFT'
+			        WHEN A.PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN A.MERCHANT_TYPE = 6011 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'ATM'
+			        WHEN A.MERCHANT_TYPE = 6013 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'SMS'
+			        WHEN A.MERCHANT_TYPE = 6014 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'INT'
+			        WHEN A.MERCHANT_TYPE = 6015 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'MOB'
+			        WHEN IFNULL(A.FROM_SYS,'IST')='IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END AS TRAN_TYPE,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    'SWITCH' AS SERVICE_CODE,
+			    'ACQ-ISS' AS GROUP_ROLE,
 
-			            Else 'POS'
-			        End,
-			        ACQUIRER_RP,
-			        Case
-			            When ISSUER_RP In (220699, 602907, 605609,GET_BCCARD_ID(), 600005, 600006, 600007) Then ISSUER_RP
-			            When PCode2 In (810000, 820000, 830000, 860000, 870000) Then 999999
-			            Else 0
-			        End,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When PCODE2 in (960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,987500,997500,987600,997600,988400,998400,988500,998500,
-			            967800,977800,987800,997800,967900,977900,987900,997900,
-			            966100,976100,986100,996100,966200,976200,986200,996200) Then MERCHANT_TYPE_ORIG
-			        When Pcode = 0 And Merchant_type_orig in (4111, 4131,5172,9211, 9222, 9223, 9311, 9399,8398,7523,7524,5541,5542) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End,
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End,
-			        Case
-			        When Msgtype = 430 And Respcode = 114 Then 1
-			        When Msgtype = 210 And Respcode in (112,114)  And Is_part_rev = 430 then 1
-			        Else 0
-			        End,
-			        Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
-			    ;
+			    /* BANK_ID */
+			    A.ACQUIRER_RP AS BANK_ID,
 
-			""";
+			    /* WITH_BANK: dùng :bccard_id + NOT EXISTS TGTT_CONFIG */
+			    CASE
+			        WHEN A.ISSUER_RP IN (220699,602907,605609,:bccard_id,600005,600006,600007) THEN A.ISSUER_RP
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 999999
+			        ELSE CASE
+			               WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			               THEN A.ISSUER_RP
+			               ELSE 0
+			             END
+			    END AS WITH_BANK,
+
+			    /* Aggregations */
+			    0 AS DB_TOTAL_TRAN,
+			    0 AS DB_AMOUNT,
+
+			    /* DB_IR_FEE */
+			    SUM(
+			        CASE
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.FEE_IRF_ISS > 0 THEN A.FEE_IRF_ISS
+			            WHEN A.FEE_IRF_ACQ < 0 THEN -A.FEE_IRF_ACQ
+			            ELSE 0
+			        END
+			    ) AS DB_IR_FEE,
+
+			    0 AS DB_SV_FEE,
+			    0 AS DB_TOTAL_FEE,
+			    0 AS DB_TOTAL_MONEY,
+
+			    /* CD_TOTAL_TRAN */
+			    SUM(
+			        CASE
+			            WHEN A.PCODE IN ('41','42','43','48','91') THEN 0
+			            ELSE 1
+			        END
+			    ) AS CD_TOTAL_TRAN,
+
+			    /* CD_AMOUNT */
+			    SUM(
+			        CASE
+			            WHEN A.PCODE IN ('00','01','20') THEN
+			                CASE
+			                    WHEN A.PCODE = '20' AND A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0) * -1
+			                    WHEN A.PCODE = '20' THEN -A.AMOUNT
+			                    WHEN A.RESPCODE IN (112,114) THEN IFNULL(A.PREAMOUNT,0)
+			                    ELSE CASE
+			                             WHEN A.ACQ_CURRENCY_CODE = 418 THEN A.SETTLEMENT_AMOUNT
+			                             ELSE A.AMOUNT
+			                         END
+			                END
+			            ELSE 0
+			        END
+			    ) AS CD_AMOUNT,
+
+			    /* CD_IR_FEE */
+			    SUM(
+			        CASE
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE = 6011 THEN -A.FEE_IRF_ISS
+			            WHEN A.FEE_IRF_ACQ > 0 AND A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE <> 6011 THEN A.FEE_IRF_ACQ
+			            WHEN A.FEE_IRF_ACQ > 0 AND A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE = 6011 THEN 0
+			            WHEN A.FEE_IRF_ACQ > 0 THEN A.FEE_IRF_ACQ
+			            ELSE 0
+			        END
+			    ) AS CD_IR_FEE,
+
+			    /* CD_SV_FEE */
+			    -SUM(A.FEE_SVF_ACQ) AS CD_SV_FEE,
+
+			    0 AS CD_TOTAL_MONEY,
+
+			    0 AS NAPAS_FEE,
+			    0 AS ADJ_FEE,
+
+			    /* NP_ADJ_FEE */
+			    SUM(
+			        CASE
+			            WHEN A.FEE_KEY = 'CFC85B5F-787B-437C-823F-79534D3B72BD' THEN A.FEE_IRF_ACQ
+			            ELSE 0
+			        END
+			    ) AS NP_ADJ_FEE,
+
+			    /* MERCHANT_TYPE out */
+			    CASE
+			        WHEN A.PCODE IN ('41','42','48','91') THEN A.MERCHANT_TYPE
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967800,977800,987800,997800,
+			            967900,977900,987900,997900,966100,976100,986100,996100,966200,976200,986200,996200
+			        ) THEN A.MERCHANT_TYPE_ORIG
+			        WHEN A.PCODE = 0 AND A.MERCHANT_TYPE_ORIG IN (4111,4131,5172,9211,9222,9223,9311,9399,8398,7523,7524,5541,5542)
+			            THEN A.MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END AS MERCHANT_TYPE,
+
+			    /* BC_NP_ADJ */
+			    -SUM(
+			        CASE
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE = 6011 THEN A.FEE_IRF_ISS
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.FEE_IRF_ISS > 0 AND A.MERCHANT_TYPE <> 6011 THEN A.FEE_IRF_ISS
+			            ELSE 0
+			        END
+			    ) AS BC_NP_ADJ,
+
+			    /* BC_NP_SUM */
+			    SUM(
+			        CASE
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE = 6011 THEN -A.FEE_IRF_ISS
+			            WHEN A.ACQUIRER_RP = :bccard_id AND A.MERCHANT_TYPE <> 6011 THEN -A.FEE_IRF_ISS
+			            ELSE 0
+			        END
+			    ) AS BC_NP_SUM,
+
+			    'A-BY_ROLE' AS STEP,
+
+			    /* FEE_TYPE */
+			    CASE
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 IN (910000,930000,950000) AND A.ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END AS FEE_TYPE,
+
+			    /* PART_FE */
+			    CASE
+			        WHEN A.MSGTYPE = 430 AND A.RESPCODE = 114 THEN 1
+			        WHEN A.MSGTYPE = 210 AND A.RESPCODE IN (112,114) AND A.IS_PART_REV = 430 THEN 1
+			        ELSE 0
+			    END AS PART_FE,
+
+			    /* LIQUIDITY: không thuộc bất kỳ danh sách thanh khoản nào */
+			    CASE
+			        WHEN MAX(b.bank_id) IS NULL AND MAX(c.bank_id) IS NULL AND MAX(d.bank_id) IS NULL THEN 'Y'
+			        ELSE 'N'
+			    END AS LIQUIDITY
+
+			FROM SHCLOG_SETT_IBFT_ADJUST A
+			LEFT JOIN GET_LIQUIDITY_BANK b ON A.ISSUER_RP   = b.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK c ON A.ACQUIRER_RP = c.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK d ON A.BB_BIN      = d.bank_id
+			WHERE
+			    (
+			        (A.RESPCODE = 0 AND A.ISREV = 0)
+			        OR A.RESPCODE IN (110,112,113,114,115)
+			    )
+			    AND A.FEE_NOTE IS NOT NULL
+			    AND (
+			        (A.PCODE2 IS NULL AND A.PCODE IN ('00','01','30','35','40','41','42','43','48','94','03','20'))
+			        OR
+			        (A.PCODE2 IS NOT NULL AND A.PCODE IN ('00','01','30','35','40','41','42','43','48','94','91','03','20'))
+			    )
+			GROUP BY
+			    A.MSGTYPE_DETAIL,
+
+			    CASE
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE < :sett_from THEN :sett_from
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE > :sett_to   THEN :sett_to
+			        WHEN A.RESPCODE = 0 AND A.SETTLEMENT_DATE BETWEEN :sett_from AND :sett_to THEN A.SETTLEMENT_DATE
+			        ELSE NULL
+			    END,
+
+			    CASE
+			        WHEN A.RESPCODE = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(A.EDIT_DATE) < :sett_from THEN :sett_from
+			                 ELSE DATE(A.EDIT_DATE)
+			             END
+			    END,
+
+			    CASE
+			        WHEN A.ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN A.ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END,
+
+			    A.RESPCODE,
+
+			    /* GROUP BY GROUP_TRAN */
+			    CASE
+			        WHEN A.PCODE2 = 890000 THEN 'QRPAY'
+			        WHEN A.PCODE2 = 720000 THEN 'E-Wallet'
+			        WHEN A.PCODE2 = 730000 THEN 'EFT'
+			        WHEN A.PCODE IN ('43') AND A.PCODE2 IS NULL THEN 'CBFT'
+			        WHEN A.PCODE2 = 930000 THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') = 'IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END,
+
+			    /* GROUP BY PCODE out */
+			    CASE
+			        WHEN A.ISSUER_RP = 602907
+			            THEN IFNULL(A.PCODE_ORIG, SUBSTRING(LPAD(CAST(A.PCODE AS CHAR),2,'0'),1,2))
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967700,977700,987700,997700,
+			            967800,977800,987800,997800,967900,977900,987900,997900,966100,976100,986100,996100,
+			            966200,976200,986200,996200
+			        )
+			            THEN CONCAT(A.PCODE, A.PCODE2)
+			        ELSE A.PCODE
+			    END,
+
+			    /* GROUP BY TRAN_TYPE */
+			    CASE
+			        WHEN A.PCODE2 IN (750000,967500,977500,987500,997500,760000,967600,977600,987600,997600,770000,967700,977700,987700,997700) THEN 'TRANSIT'
+			        WHEN A.PCODE2 = 890000 THEN 'QRC'
+			        WHEN A.PCODE2 = 720000 THEN 'CAOT'
+			        WHEN A.PCODE2 = 730000 THEN 'EFTC'
+			        WHEN A.PCODE2 = 810000 THEN 'CA5'
+			        WHEN A.PCODE2 = 820000 THEN 'CA4'
+			        WHEN A.PCODE2 = 830000 THEN 'CA2'
+			        WHEN A.PCODE2 IN (840000,968400,978400,988400,998400) THEN 'SSP_ON'
+			        WHEN A.PCODE2 IN (850000,968500,978500,988500,998500) THEN 'SSP_OFF'
+			        WHEN A.PCODE2 IN (780000,967800,977800,987800,997800) THEN 'BP_ON'
+			        WHEN A.PCODE2 IN (790000,967900,979500,988500,997900) THEN 'BP_OFF'
+			        WHEN A.PCODE2 IN (610000,966100,976100,986100,996100) THEN 'APPLEPAY_ON'
+			        WHEN A.PCODE2 IN (620000,966200,976200,986200,996200) THEN 'APPLEPAY_OFF'
+			        WHEN A.PCODE2 = 860000 THEN 'CA1'
+			        WHEN A.PCODE2 = 870000 THEN 'CA3'
+			        WHEN A.PCODE2 = 930000 THEN 'QR_IBFT'
+			        WHEN A.PCODE2 = 950000 THEN 'Mobile IBFT'
+			        WHEN A.MERCHANT_TYPE = 6011 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'ATM'
+			        WHEN A.MERCHANT_TYPE = 6013 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'SMS'
+			        WHEN A.MERCHANT_TYPE = 6014 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'INT'
+			        WHEN A.MERCHANT_TYPE = 6015 AND A.PCODE NOT IN ('41','42','48','91') AND (A.PCODE2 IS NULL OR IFNULL(A.FROM_SYS,'IST')='IST') THEN 'MOB'
+			        WHEN IFNULL(A.FROM_SYS,'IST')='IST|IBT' AND A.TRAN_CASE IN ('C3|72','72|C3') THEN 'IBFT khác'
+			        WHEN IFNULL(A.FROM_SYS,'IST') IN ('IST','IBT') AND A.PCODE IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END,
+
+			    /* BANK_ID */
+			    A.ACQUIRER_RP,
+
+			    /* GROUP BY WITH_BANK */
+			    CASE
+			        WHEN A.ISSUER_RP IN (220699,602907,605609,:bccard_id,600005,600006,600007) THEN A.ISSUER_RP
+			        WHEN A.PCODE2 IN (810000,820000,830000,860000,870000) THEN 999999
+			        ELSE CASE
+			               WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.ISSUER_RP)
+			               THEN A.ISSUER_RP
+			               ELSE 0
+			             END
+			    END,
+
+			    /* GROUP BY MERCHANT_TYPE out */
+			    CASE
+			        WHEN A.PCODE IN ('41','42','48','91') THEN A.MERCHANT_TYPE
+			        WHEN A.PCODE2 IN (
+			            960000,970000,980000,990000,967500,977500,967600,977600,968400,978400,968500,978500,
+			            987500,997500,987600,997600,988400,998400,988500,998500,967800,977800,987800,997800,
+			            967900,977900,987900,997900,966100,976100,986100,996100,966200,976200,986200,996200
+			        ) THEN A.MERCHANT_TYPE_ORIG
+			        WHEN A.PCODE = 0 AND A.MERCHANT_TYPE_ORIG IN (4111,4131,5172,9211,9222,9223,9311,9399,8398,7523,7524,5541,5542)
+			            THEN A.MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END,
+
+			    /* GROUP BY FEE_TYPE (giống SELECT) */
+			    CASE
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 950000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN A.PCODE2 = 930000 AND A.ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+
+			        WHEN A.PCODE2 IN (910000,930000,950000) AND A.ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN A.PCODE2 = 910000 AND A.ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END,
+
+			    /* GROUP BY PART_FE */
+			    CASE
+			        WHEN A.MSGTYPE = 430 AND A.RESPCODE = 114 THEN 1
+			        WHEN A.MSGTYPE = 210 AND A.RESPCODE IN (112,114) AND A.IS_PART_REV = 430 THEN 1
+			        ELSE 0
+			    END
+			;
+
+						""";
 
 	// lines 2196-2500
 	private static final String STEP_11_SQL = """
-				--step 11
-			    -- ISS-BEN
-			    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
-			            SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			            DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
-			            NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE, MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
-			    Select Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End SETT_DATE,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End As EDIT_DATE,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End  As SETTLEMENT_CURRENCY, RESPCODE,
-			        Case
-			            When Pcode2 in (920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End As GROUP_TRAN, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When Pcode2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			-- STEP 11: ISS-BEN (TiDB)
+			INSERT INTO TCKT_NAPAS_IBFT(
+			    SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+			    SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK,
+			    DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY,
+			    CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			    NAPAS_FEE, ADJ_FEE, NP_ADJ_FEE, MERCHANT_TYPE, STEP, FEE_TYPE, LIQUIDITY
+			)
+			SELECT
+			    /* SETT_DATE */
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE <  :Sett_From THEN :Sett_From
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE >  :Sett_To   THEN :Sett_To
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :Sett_From AND :Sett_To THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END AS SETT_DATE,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(Edit_Date) < :Sett_From THEN :Sett_From
+			                 ELSE DATE(Edit_Date)
+			             END
+			    END AS EDIT_DATE,
 
-			            Else 'POS'
-			        End As TRAN_TYPE,
-			        'SWITCH' As SERVICE_CODE,
-			        'ISS-BEN' As GROUP_ROLE,
-			        ISSUER_RP As BANK_ID,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(BB_BIN)
-			            Else 0
-			        End As WITH_BANK,
-			        SUM(
-			           Case
-			                When Pcode In ('41','43','48') Then 0
-			                Else 1
-			            End
-			        ) As DB_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                Else
-			                    Case
-			                        When ACQ_CURRENCY_CODE = 418 Then SETTLEMENT_AMOUNT
-			                        When ACQ_CURRENCY_CODE = 764 Then SETTLEMENT_AMOUNT --- QR_ITMX
-			                        Else
-			                            AMOUNT
-			                    End
-			            End
-			        ) AS DB_AMOUNT,
-			        SUM(Case
-			            When
-			                Case
-			                    When Pcode In ('41','42','43','48','91') Then 0
-			                    Else FEE_IRF_ISS
-			                End < 0
-			                Then -Case
-			                            When Pcode In ('41','42','43','48','91') Then 0
-			                            Else FEE_IRF_ISS
-			                      End
-			             Else 0
-			        End) As DB_IR_FEE,
-			        -SUM(Case When Pcode In ('41','43','48') Then 0 Else FEE_SVF_ISS End) As DB_SV_FEE,
-			        0 As DB_TOTAL_FEE,
-			        0 As DB_TOTAL_MONEY,
-			        0 As CD_TOTAL_TRAN,
-			        0 As CD_AMOUNT,
-			        SUM(Case When FEE_IRF_ISS > 0 Then FEE_IRF_ISS Else 0 End) As CD_IR_FEE,
-			        SUM(Case When FEE_SVF_ISS < 0 Then 0 Else FEE_SVF_ISS End)  As CD_SV_FEE,
-			        0 As CD_TOTAL_MONEY,
-			        0 As NAPAS_FEE,
-			        0 As ADJ_FEE,
-			        0 As NP_ADJ_FEE,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End MERCHANT_TYPE,'A-BY_ROLE',
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End as FEE_TYPE,
-			        Case When Max(B.COLUMN_VALUE) Is Null And Max(C.COLUMN_VALUE) Is Null And Max(D.COLUMN_VALUE) Is Null Then 'Y' Else 'N' End
-			    From SHCLOG_SETT_IBFT_ADJUST A
-			    Left Join Table(GET_LIQUIDITY_BANK) B
-			        On A.ISSUER_RP = B.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) C
-			        On A.ACQUIRER_RP = C.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) D
-			        On A.BB_BIN = D.COLUMN_VALUE
-			    Where
-			    (
-			        (Respcode = 0 And Isrev = 0)
-			        Or
-			        Respcode In (110,112,113,114,115)
-			    )
-			    And Fee_Note Is not null
-			    And Msgtype = 210
-			    And Pcode In ('41','42','43','48','91')
-			    Group By Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End , RESPCODE,
-			        Case
-			            When Pcode2 in(920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When Pcode2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END AS SETTLEMENT_CURRENCY,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
-			            Else 'POS'
-			        End,
-			        ISSUER_RP,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(BB_BIN)
-			            Else 0
-			        End,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End,
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End,
-			        Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
-			    ;
-			""";
+			    RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN Pcode2 IN (920000) THEN 'QR'
+			        WHEN Pcode2 = 890000    THEN 'QRPAY'
+			        WHEN Pcode2 = 720000    THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000    THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN Pcode2 = 930000    THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END AS GROUP_TRAN,
+
+			    PCODE,
+
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN Pcode2 = 890000 THEN 'QRC'
+			        WHEN Pcode2 = 720000 THEN 'CAOT'
+			        WHEN Pcode2 = 730000 THEN 'EFTC'
+			        WHEN Pcode2 = 810000 THEN 'CA5'
+			        WHEN Pcode2 = 820000 THEN 'CA4'
+			        WHEN Pcode2 = 830000 THEN 'CA2'
+			        WHEN Pcode2 = 840000 THEN 'SSP_ON'
+			        WHEN Pcode2 = 850000 THEN 'SSP_OFF'
+			        WHEN Pcode2 = 860000 THEN 'CA1'
+			        WHEN Pcode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN Pcode2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END AS TRAN_TYPE,
+
+			    'SWITCH'  AS SERVICE_CODE,
+			    'ISS-BEN' AS GROUP_ROLE,
+
+			    ISSUER_RP AS BANK_ID,
+
+			    /* WITH_BANK: thay GET_QRC_WITH(BB_BIN) */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 764000
+			        WHEN Pcode2 IN (720000,730000,890000)
+			             THEN CASE
+			                      WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.BB_BIN)
+			                      THEN A.BB_BIN ELSE 0
+			                  END
+			        ELSE 0
+			    END AS WITH_BANK,
+
+			    /* DB_TOTAL_TRAN */
+			    SUM(CASE WHEN Pcode IN ('41','43','48') THEN 0 ELSE 1 END) AS DB_TOTAL_TRAN,
+
+			    /* DB_AMOUNT */
+			    SUM(
+			        CASE
+			            WHEN Respcode IN (112,114) THEN COALESCE(PREAMOUNT,0)
+			            ELSE CASE
+			                     WHEN ACQ_CURRENCY_CODE = 418 THEN SETTLEMENT_AMOUNT
+			                     WHEN ACQ_CURRENCY_CODE = 764 THEN SETTLEMENT_AMOUNT
+			                     ELSE AMOUNT
+			                 END
+			        END
+			    ) AS DB_AMOUNT,
+
+			    /* DB_IR_FEE: lấy phần âm */
+			    SUM(
+			        CASE
+			            WHEN (CASE WHEN Pcode IN ('41','42','43','48','91') THEN 0 ELSE FEE_IRF_ISS END) < 0
+			            THEN - (CASE WHEN Pcode IN ('41','42','43','48','91') THEN 0 ELSE FEE_IRF_ISS END)
+			            ELSE 0
+			        END
+			    ) AS DB_IR_FEE,
+
+			    /* DB_SV_FEE */
+			    -SUM(CASE WHEN Pcode IN ('41','43','48') THEN 0 ELSE FEE_SVF_ISS END) AS DB_SV_FEE,
+
+			    0 AS DB_TOTAL_FEE,
+			    0 AS DB_TOTAL_MONEY,
+			    0 AS CD_TOTAL_TRAN,
+			    0 AS CD_AMOUNT,
+
+			    /* CD_IR_FEE / CD_SV_FEE: phần dương */
+			    SUM(CASE WHEN FEE_IRF_ISS > 0 THEN FEE_IRF_ISS ELSE 0 END) AS CD_IR_FEE,
+			    SUM(CASE WHEN FEE_SVF_ISS < 0 THEN 0 ELSE FEE_SVF_ISS END) AS CD_SV_FEE,
+
+			    0 AS CD_TOTAL_MONEY,
+			    0 AS NAPAS_FEE,
+			    0 AS ADJ_FEE,
+			    0 AS NP_ADJ_FEE,
+
+			    /* MERCHANT_TYPE */
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END AS MERCHANT_TYPE,
+
+			    'A-BY_ROLE' AS STEP,
+
+			    /* FEE_TYPE */
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END AS FEE_TYPE,
+
+			    /* LIQUIDITY: join view GET_LIQUIDITY_BANK, dùng MAX() cho SELECT có GROUP BY */
+			    CASE
+			        WHEN MAX(B.bank_id) IS NULL AND MAX(C.bank_id) IS NULL AND MAX(D.bank_id) IS NULL THEN 'Y'
+			        ELSE 'N'
+			    END AS LIQUIDITY
+
+			FROM SHCLOG_SETT_IBFT_ADJUST A
+			LEFT JOIN GET_LIQUIDITY_BANK B ON A.ISSUER_RP   = B.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK C ON A.ACQUIRER_RP = C.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK D ON A.BB_BIN      = D.bank_id
+			WHERE
+			    ( (Respcode = 0 AND Isrev = 0) OR Respcode IN (110,112,113,114,115) )
+			    AND Fee_Note IS NOT NULL
+			    AND Msgtype = 210
+			    AND Pcode IN ('41','42','43','48','91')
+			GROUP BY
+			    /* SETT_DATE */
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE <  :Sett_From THEN :Sett_From
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE >  :Sett_To   THEN :Sett_To
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :Sett_From AND :Sett_To THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END,
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(Edit_Date) < :Sett_From THEN :Sett_From
+			                 ELSE DATE(Edit_Date)
+			             END
+			    END,
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END,
+			    RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN Pcode2 IN (920000) THEN 'QR'
+			        WHEN Pcode2 = 890000    THEN 'QRPAY'
+			        WHEN Pcode2 = 720000    THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000    THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN Pcode2 = 930000    THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END,
+
+			    PCODE,
+
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN Pcode2 = 890000 THEN 'QRC'
+			        WHEN Pcode2 = 720000 THEN 'CAOT'
+			        WHEN Pcode2 = 730000 THEN 'EFTC'
+			        WHEN Pcode2 = 810000 THEN 'CA5'
+			        WHEN Pcode2 = 820000 THEN 'CA4'
+			        WHEN Pcode2 = 830000 THEN 'CA2'
+			        WHEN Pcode2 = 840000 THEN 'SSP_ON'
+			        WHEN Pcode2 = 850000 THEN 'SSP_OFF'
+			        WHEN Pcode2 = 860000 THEN 'CA1'
+			        WHEN Pcode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN Pcode2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END,
+
+			    ISSUER_RP,
+
+			    /* WITH_BANK (group-by key) */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 764000
+			        WHEN Pcode2 IN (720000,730000,890000)
+			             THEN CASE
+			                      WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.BB_BIN)
+			                      THEN A.BB_BIN ELSE 0
+			                  END
+			        ELSE 0
+			    END,
+
+			    /* MERCHANT_TYPE (group-by key) */
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END,
+
+			    /* FEE_TYPE (group-by key) */
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END;
+
+						""";
 
 	// lines 2501-2790
 	private static final String STEP_12_SQL = """
-			``	--step 12
-			    -- BEN-ISS
-			    Insert   Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
-			            SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			            DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
-			            NAPAS_FEE,ADJ_FEE,NP_ADJ_FEE,MERCHANT_TYPE,STEP,FEE_TYPE,LIQUIDITY)
-			    Select Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End SETT_DATE,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End As EDIT_DATE,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End  As SETTLEMENT_CURRENCY, RESPCODE,
-			        Case
-			            When Pcode2 in (920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End As GROUP_TRAN, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When Pcode2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			-- STEP 12: BEN-ISS  (TiDB/MySQL)
+			INSERT INTO TCKT_NAPAS_IBFT(
+			    SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
+			    SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK,
+			    DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY,
+			    CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			    NAPAS_FEE, ADJ_FEE, NP_ADJ_FEE, MERCHANT_TYPE, STEP, FEE_TYPE, LIQUIDITY
+			)
+			SELECT
+			    /* SETT_DATE */
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE <  :Sett_From THEN :Sett_From
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE >  :Sett_To   THEN :Sett_To
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :Sett_From AND :Sett_To THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END AS SETT_DATE,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(Edit_Date) < :Sett_From THEN :Sett_From
+			                 ELSE DATE(Edit_Date)
+			             END
+			    END AS EDIT_DATE,
 
-			            Else 'POS'
-			        End As TRAN_TYPE,
-			        'SWITCH' As SERVICE_CODE,
-			        'BEN-ISS' As GROUP_ROLE,
-			        BB_BIN As BANK_ID,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When ISSUER_RP In (605609) Then Issuer_Rp
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(Issuer_Rp)
-			            Else 0
-			        End As WITH_BANK,
-			        0 As DB_TOTAL_TRAN,
-			        0 AS DB_AMOUNT,
-			        SUM(Case When FEE_IRF_BEN < 0 Then -FEE_IRF_BEN Else 0 End)  As DB_IR_FEE,
-			        0 As DB_SV_FEE,
-			        0 As DB_TOTAL_FEE,
-			        0 As DB_TOTAL_MONEY,
-			        Count(*) As CD_TOTAL_TRAN,
-			        SUM(
-			            Case
-			                When Respcode In (112,114) Then CASE PREAMOUNT WHEN null THEN 0 ELSE PREAMOUNT END
-			                Else AMOUNT
-			            End
-			        ) As CD_AMOUNT,
-			        SUM(Case
-			            When Case When Pcode = '48' Then 0 Else Case When FEE_IRF_BEN > 0 Then FEE_IRF_BEN Else 0 End End > 0
-			            Then Case When Pcode = '48' Then 0 Else Case When FEE_IRF_BEN > 0 Then FEE_IRF_BEN Else 0 End End
-			            Else 0
-			        End) As CD_IR_FEE,
-			        -SUM(FEE_SVF_BEN) As CD_SV_FEE,
-			        0 As CD_TOTAL_MONEY,
-			        0 As NAPAS_FEE,
-			        0 As ADJ_FEE,
-			        0 As NP_ADJ_FEE,
-			        Case
-			        When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End MERCHANT_TYPE,'A-BY_ROLE',
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End as FEE_TYPE,
-			        Case When Max(B.COLUMN_VALUE) Is Null And Max(C.COLUMN_VALUE) Is Null And Max(D.COLUMN_VALUE) Is Null Then 'Y' Else 'N' End
-			    From SHCLOG_SETT_IBFT_ADJUST A
-			    Left Join Table(GET_LIQUIDITY_BANK) B
-			        On A.ISSUER_RP = B.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) C
-			        On A.ACQUIRER_RP = C.COLUMN_VALUE
-			    Left Join Table(GET_LIQUIDITY_BANK) D
-			        On A.BB_BIN = D.COLUMN_VALUE
-			    Where
-			    (
-			        (Respcode = 0 And Isrev = 0)
-			        Or
-			        Respcode In (110,112,113,114,115)
-			    )
-			    And Msgtype = 210
-			    And Fee_Note Is not null
-			    And Pcode In ('41','42','43','48','91')
-			    Group By Case
-			                When Respcode = 0 And SETTLEMENT_DATE < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE > STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y')
-			                When Respcode = 0 And SETTLEMENT_DATE Between STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') And STR_TO_DATE(:pQRY_TO_DATE, '%d/%m/%Y') Then SETTLEMENT_DATE
-			                Else null
-			            End,
-			        Case
-			            When Respcode = 0 Then null
-			            Else
-			                Case
-			                    When DATE(Edit_Date) < STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y') Then STR_TO_DATE(:pQRY_FROM_DATE, '%d/%m/%Y')
-			                    Else DATE(Edit_Date)
-			                End
-			        End,
-			        Case
-			                    When ACQ_CURRENCY_CODE = 840 Then 840
-			                    When ACQ_CURRENCY_CODE = 418 Then 418
-			                    Else 704
-			        End , RESPCODE,
-			        Case
-			            When Pcode2 in (920000) Then 'QR'
-			            When Pcode2 = 890000  Then 'QRPAY'
-			            When Pcode2 = 720000  Then 'E-Wallet'
-			            When Pcode2 = 730000  Then 'EFT'
-			            When Pcode In ('43') And Pcode2 Is Null Then 'CBFT'
-			            When PCODE2 = 930000 Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT'
-			            When Pcode2 In (810000,820000,830000,860000,870000)  Then 'UTMQT'
-			            Else 'Non IBFT'
-			        End, PCODE,
-			        Case
-			            When Pcode2 = 920000 Then 'QR_ITMX'
-			            When PCode2 = 890000 Then 'QRC'
-			            When PCode2 = 720000 Then 'CAOT'
-			            When PCode2 = 730000 Then 'EFTC'
-			            When PCode2 = 810000 Then 'CA5'
-			            When PCode2 = 820000 Then 'CA4'
-			            When PCode2 = 830000 Then 'CA2'
-			            When PCode2 = 840000 Then 'SSP_ON'
-			            When PCode2 = 850000 Then 'SSP_OFF'
-			            When PCode2 = 860000 Then 'CA1'
-			            When PCode2 = 870000 Then 'CA3'
-			            When PCODE2 = 930000 Then 'QR_IBFT'
-			            When PCODE2 = 950000 Then 'Mobile IBFT'
-			            When merchant_type = 6011 And Pcode not In ('41','42','48','91') And (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'ATM'
-			            When merchant_type = 6013 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'SMS'
-			            When merchant_type = 6014 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'INT'
-			            When merchant_type = 6015 And Pcode not In ('41','42','48','91') And  (
-			                                            Pcode2 Is Null
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END AS SETTLEMENT_CURRENCY,
 
-			                                            Or
-			                                            CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST'
-			                                          ) then 'MOB'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END = 'IST|IBT' And (TRAN_CASE = 'C3|72' or  TRAN_CASE = '72|C3') Then 'IBFT khc'
-			            When CASE FROM_SYS WHEN null THEN 'IST' ELSE FROM_SYS END in('IST','IBT') And Pcode In ('41','48','42','91') Then 'IBFT khc'
+			    RESPCODE,
 
-			            Else 'POS'
-			        End,
-			        BB_BIN,
-			        Case
-			            When PCode2 = 920000 Then 764000
-			            When ISSUER_RP In (605609) Then Issuer_Rp
-			            When Pcode2 In (720000,730000,890000) Then GET_QRC_WITH(Issuer_Rp)
-			            Else 0
-			        End,
-			        Case When Pcode In ('41','42','48','91') Then MERCHANT_TYPE
-			        When Pcode2 In (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) Then MERCHANT_TYPE_ORIG
-			        Else Null
-			        End,
-			        Case
-			            When PCODE2 = 930000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 130012 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 930000 And ISSUER_FE = 971100 Then 'QR_IBFT_FEE'
-			            When PCODE2 = 950000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 950000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 950000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 950000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 950000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 950000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 950000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 950000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 950000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 950000 And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE = 130001 Then 'COVID_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE in (130002,130003) Then 'AMOUNT_1000K'
-			            When PCODE2 = 910000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 910000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 910000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 910000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 910000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 910000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 910000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 910000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 = 930000 And ISSUER_FE in (130004,130008) Then 'TIER_LEVEL_1'
-			            When PCODE2 = 930000 And ISSUER_FE in (130005,130009) Then 'TIER_LEVEL_2'
-			            When PCODE2 = 930000 And ISSUER_FE in (130006,130010) Then 'TIER_LEVEL_3'
-			            When PCODE2 = 930000 And ISSUER_FE in (130007,130011) Then 'TIER_LEVEL_4'
-			            When PCODE2 = 930000 And ISSUER_FE in (130013,130014) Then 'TIER_LEVEL_5'
-			            When PCODE2 = 930000 And ISSUER_FE in (130015,130018) Then 'TIER_LEVEL_6'
-			            When PCODE2 = 930000 And ISSUER_FE in (130016,130019) Then 'TIER_LEVEL_7'
-			            When PCODE2 = 930000 And ISSUER_FE in (130017,130020) Then 'TIER_LEVEL_8'
-			            When PCODE2 in (910000,930000,950000) And ISSUER_FE  = 980471 Then 'ACH_FEE'
-			            When PCODE2 = 910000 And ISSUER_FE  = 980478 Then 'IBFT20_FEE' --ninhnt them 980478 cho du an IBFT2.0
-			            Else 'GDDC_CU'
-			            End,
-			        Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
-			    ;
-			    --- End : Ket thuc do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
-			""";
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN Pcode2 IN (920000) THEN 'QR'
+			        WHEN Pcode2 = 890000    THEN 'QRPAY'
+			        WHEN Pcode2 = 720000    THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000    THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN Pcode2 = 930000    THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END AS GROUP_TRAN,
+
+			    PCODE,
+
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN Pcode2 = 890000 THEN 'QRC'
+			        WHEN Pcode2 = 720000 THEN 'CAOT'
+			        WHEN Pcode2 = 730000 THEN 'EFTC'
+			        WHEN Pcode2 = 810000 THEN 'CA5'
+			        WHEN Pcode2 = 820000 THEN 'CA4'
+			        WHEN Pcode2 = 830000 THEN 'CA2'
+			        WHEN Pcode2 = 840000 THEN 'SSP_ON'
+			        WHEN Pcode2 = 850000 THEN 'SSP_OFF'
+			        WHEN Pcode2 = 860000 THEN 'CA1'
+			        WHEN Pcode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN Pcode2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END AS TRAN_TYPE,
+
+			    'SWITCH'  AS SERVICE_CODE,
+			    'BEN-ISS' AS GROUP_ROLE,
+
+			    BB_BIN AS BANK_ID,
+
+			    /* WITH_BANK: thay GET_QRC_WITH(Issuer_Rp) theo yêu cầu */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 764000
+			        WHEN ISSUER_RP IN (605609) THEN ISSUER_RP
+			        WHEN Pcode2 IN (720000,730000,890000)
+			             THEN CASE
+			                      WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.BB_BIN)
+			                      THEN A.BB_BIN ELSE 0
+			                  END
+			        ELSE 0
+			    END AS WITH_BANK,
+
+			    /* Bên BEN-ISS: không phát sinh DB*, chỉ có bên Có (CD*) */
+			    0 AS DB_TOTAL_TRAN,
+			    0 AS DB_AMOUNT,
+			    SUM(CASE WHEN FEE_IRF_BEN < 0 THEN -FEE_IRF_BEN ELSE 0 END) AS DB_IR_FEE,
+			    0 AS DB_SV_FEE,
+			    0 AS DB_TOTAL_FEE,
+			    0 AS DB_TOTAL_MONEY,
+
+			    COUNT(*) AS CD_TOTAL_TRAN,
+
+			    SUM(
+			        CASE
+			            WHEN Respcode IN (112,114) THEN COALESCE(PREAMOUNT,0)
+			            ELSE AMOUNT
+			        END
+			    ) AS CD_AMOUNT,
+
+			    SUM(
+			        CASE
+			            WHEN (CASE WHEN Pcode = '48' THEN 0 ELSE CASE WHEN FEE_IRF_BEN > 0 THEN FEE_IRF_BEN ELSE 0 END END) > 0
+			            THEN (CASE WHEN Pcode = '48' THEN 0 ELSE CASE WHEN FEE_IRF_BEN > 0 THEN FEE_IRF_BEN ELSE 0 END END)
+			            ELSE 0
+			        END
+			    ) AS CD_IR_FEE,
+
+			    -SUM(FEE_SVF_BEN) AS CD_SV_FEE,
+
+			    0 AS CD_TOTAL_MONEY,
+			    0 AS NAPAS_FEE,
+			    0 AS ADJ_FEE,
+			    0 AS NP_ADJ_FEE,
+
+			    /* MERCHANT_TYPE */
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END AS MERCHANT_TYPE,
+
+			    'A-BY_ROLE' AS STEP,
+
+			    /* FEE_TYPE */
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END AS FEE_TYPE,
+
+			    /* LIQUIDITY từ view GET_LIQUIDITY_BANK */
+			    CASE
+			        WHEN MAX(B.bank_id) IS NULL AND MAX(C.bank_id) IS NULL AND MAX(D.bank_id) IS NULL THEN 'Y'
+			        ELSE 'N'
+			    END AS LIQUIDITY
+
+			FROM SHCLOG_SETT_IBFT_ADJUST A
+			LEFT JOIN GET_LIQUIDITY_BANK B ON A.ISSUER_RP   = B.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK C ON A.ACQUIRER_RP = C.bank_id
+			LEFT JOIN GET_LIQUIDITY_BANK D ON A.BB_BIN      = D.bank_id
+			WHERE
+			    ( (Respcode = 0 AND Isrev = 0) OR Respcode IN (110,112,113,114,115) )
+			    AND Msgtype = 210
+			    AND Fee_Note IS NOT NULL
+			    AND Pcode IN ('41','42','43','48','91')
+			GROUP BY
+			    /* SETT_DATE */
+			    CASE
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE <  :Sett_From THEN :Sett_From
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE >  :Sett_To   THEN :Sett_To
+			        WHEN Respcode = 0 AND SETTLEMENT_DATE BETWEEN :Sett_From AND :Sett_To THEN SETTLEMENT_DATE
+			        ELSE NULL
+			    END,
+			    /* EDIT_DATE */
+			    CASE
+			        WHEN Respcode = 0 THEN NULL
+			        ELSE CASE
+			                 WHEN DATE(Edit_Date) < :Sett_From THEN :Sett_From
+			                 ELSE DATE(Edit_Date)
+			             END
+			    END,
+			    /* SETTLEMENT_CURRENCY */
+			    CASE
+			        WHEN ACQ_CURRENCY_CODE = 840 THEN 840
+			        WHEN ACQ_CURRENCY_CODE = 418 THEN 418
+			        ELSE 704
+			    END,
+			    RESPCODE,
+
+			    /* GROUP_TRAN */
+			    CASE
+			        WHEN Pcode2 IN (920000) THEN 'QR'
+			        WHEN Pcode2 = 890000    THEN 'QRPAY'
+			        WHEN Pcode2 = 720000    THEN 'E-Wallet'
+			        WHEN Pcode2 = 730000    THEN 'EFT'
+			        WHEN Pcode IN ('43') AND Pcode2 IS NULL THEN 'CBFT'
+			        WHEN Pcode2 = 930000    THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT'
+			        WHEN Pcode2 IN (810000,820000,830000,860000,870000) THEN 'UTMQT'
+			        ELSE 'Non IBFT'
+			    END,
+
+			    PCODE,
+
+			    /* TRAN_TYPE */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 'QR_ITMX'
+			        WHEN Pcode2 = 890000 THEN 'QRC'
+			        WHEN Pcode2 = 720000 THEN 'CAOT'
+			        WHEN Pcode2 = 730000 THEN 'EFTC'
+			        WHEN Pcode2 = 810000 THEN 'CA5'
+			        WHEN Pcode2 = 820000 THEN 'CA4'
+			        WHEN Pcode2 = 830000 THEN 'CA2'
+			        WHEN Pcode2 = 840000 THEN 'SSP_ON'
+			        WHEN Pcode2 = 850000 THEN 'SSP_OFF'
+			        WHEN Pcode2 = 860000 THEN 'CA1'
+			        WHEN Pcode2 = 870000 THEN 'CA3'
+			        WHEN Pcode2 = 930000 THEN 'QR_IBFT'
+			        WHEN Pcode2 = 950000 THEN 'Mobile IBFT'
+			        WHEN merchant_type = 6011 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'ATM'
+			        WHEN merchant_type = 6013 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'SMS'
+			        WHEN merchant_type = 6014 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'INT'
+			        WHEN merchant_type = 6015 AND Pcode NOT IN ('41','42','48','91')
+			             AND (Pcode2 IS NULL OR COALESCE(FROM_SYS,'IST') = 'IST') THEN 'MOB'
+			        WHEN COALESCE(FROM_SYS,'IST') = 'IST|IBT' AND (TRAN_CASE = 'C3|72' OR TRAN_CASE = '72|C3') THEN 'IBFT khác'
+			        WHEN COALESCE(FROM_SYS,'IST') IN ('IST','IBT') AND Pcode IN ('41','48','42','91') THEN 'IBFT khác'
+			        ELSE 'POS'
+			    END,
+
+			    BB_BIN,
+
+			    /* WITH_BANK (group key) */
+			    CASE
+			        WHEN Pcode2 = 920000 THEN 764000
+			        WHEN ISSUER_RP IN (605609) THEN ISSUER_RP
+			        WHEN Pcode2 IN (720000,730000,890000)
+			             THEN CASE
+			                      WHEN NOT EXISTS (SELECT 1 FROM TGTT_CONFIG t WHERE t.TGTT_ID = A.BB_BIN)
+			                      THEN A.BB_BIN ELSE 0
+			                  END
+			        ELSE 0
+			    END,
+
+			    /* MERCHANT_TYPE (group key) */
+			    CASE
+			        WHEN Pcode IN ('41','42','48','91') THEN MERCHANT_TYPE
+			        WHEN Pcode2 IN (960000,970000,968400,978400,968500,978500,967500,977500,967600,977600) THEN MERCHANT_TYPE_ORIG
+			        ELSE NULL
+			    END,
+
+			    /* FEE_TYPE (group key) */
+			    CASE
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 130012 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE = 971100 THEN 'QR_IBFT_FEE'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 950000 AND ISSUER_FE  = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 130001 THEN 'COVID_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130002,130003) THEN 'AMOUNT_1000K'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130004,130008) THEN 'TIER_LEVEL_1'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130005,130009) THEN 'TIER_LEVEL_2'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130006,130010) THEN 'TIER_LEVEL_3'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130007,130011) THEN 'TIER_LEVEL_4'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130013,130014) THEN 'TIER_LEVEL_5'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130015,130018) THEN 'TIER_LEVEL_6'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130016,130019) THEN 'TIER_LEVEL_7'
+			        WHEN PCODE2 = 930000 AND ISSUER_FE IN (130017,130020) THEN 'TIER_LEVEL_8'
+			        WHEN PCODE2 IN (910000,930000,950000) AND ISSUER_FE = 980471 THEN 'ACH_FEE'
+			        WHEN PCODE2 = 910000 AND ISSUER_FE = 980478 THEN 'IBFT20_FEE'
+			        ELSE 'GDDC_CU'
+			    END;
+						""";
 
 	// lines 2791-2821
 	private static final String STEP_13_SQL = """
-				--step 13
-			    Update TCKT_NAPAS_IBFT
-			    Set DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0, CD_IR_FEE = 0, CD_SV_FEE = 0, ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
-			    Where RESPCODE In (112,114)
-			    And BANK_ID Not In (600005,GET_BCCARD_ID()) And WITH_BANK Not In (600005,GET_BCCARD_ID()) -- hoind 3-may-2020: Hoan phi gd hoan tra 1 phan cua NSPK, BC Card
-			    ;
+			/* step 13 */
+			-- 13.1: Zero các khoản phí/điều chỉnh cho GD hoàn trả 112,114 trừ NSPK & BC Card
+			UPDATE TCKT_NAPAS_IBFT
+			SET DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0,
+			    CD_IR_FEE = 0, CD_SV_FEE = 0,
+			    ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
+			WHERE RESPCODE IN (112,114)
+			  AND BANK_ID   NOT IN (600005, COALESCE(:bccard_id,-1))
+			  AND WITH_BANK NOT IN (600005, COALESCE(:bccard_id,-1));
+			-- Hoàn phí GD hoàn trả một phần của NSPK, BC Card
 
-			    Update TCKT_NAPAS_IBFT
-			    Set DB_TOTAL_FEE = DB_IR_FEE + DB_SV_FEE + CD_SV_FEE
-			    ;
+			-- 13.2: Tính lại tổng phí bên Nợ
+			UPDATE TCKT_NAPAS_IBFT
+			SET DB_TOTAL_FEE = DB_IR_FEE + DB_SV_FEE + CD_SV_FEE;
 
-			    Update TCKT_NAPAS_IBFT
-			    Set DB_TOTAL_MONEY = DB_TOTAL_FEE + DB_AMOUNT
-			    ;
+			-- 13.3: Tổng tiền bên Nợ
+			UPDATE TCKT_NAPAS_IBFT
+			SET DB_TOTAL_MONEY = DB_TOTAL_FEE + DB_AMOUNT;
 
-			    Update TCKT_NAPAS_IBFT
-			    Set CD_TOTAL_MONEY = CD_AMOUNT + CD_IR_FEE
-			    ;
+			-- 13.4: Tổng tiền bên Có
+			UPDATE TCKT_NAPAS_IBFT
+			SET CD_TOTAL_MONEY = CD_AMOUNT + CD_IR_FEE;
 
-			    Update TCKT_NAPAS_IBFT
-			    Set NAPAS_FEE = Case
-			                        When ADJ_FEE <> 0 Then DB_TOTAL_FEE - CD_IR_FEE - ADJ_FEE
-			                        Else DB_SV_FEE + CD_SV_FEE - NP_ADJ_FEE
-			                    End;
+			-- 13.5: Phí NAPAS
+			UPDATE TCKT_NAPAS_IBFT
+			SET NAPAS_FEE = CASE
+			                   WHEN ADJ_FEE <> 0 THEN DB_TOTAL_FEE - CD_IR_FEE - ADJ_FEE
+			                   ELSE DB_SV_FEE + CD_SV_FEE - NP_ADJ_FEE
+			                END;
 
-			    Update TCKT_NAPAS_IBFT
-			    Set DB_TOTAL_TRAN = - DB_TOTAL_TRAN, DB_AMOUNT = -DB_AMOUNT, DB_IR_FEE = -DB_IR_FEE, DB_SV_FEE = -DB_SV_FEE,
-			        DB_TOTAL_FEE = -DB_TOTAL_FEE, DB_TOTAL_MONEY = -DB_TOTAL_MONEY, CD_TOTAL_TRAN = -CD_TOTAL_TRAN, BC_CL_ADJ = - BC_CL_ADJ,
-			        CD_AMOUNT = -CD_AMOUNT, CD_IR_FEE = -CD_IR_FEE, CD_SV_FEE = -CD_SV_FEE, CD_TOTAL_MONEY = -CD_TOTAL_MONEY, NAPAS_FEE = -NAPAS_FEE, BC_NP_ADJ = - BC_NP_ADJ, BC_NP_SUM = - BC_NP_SUM
-			    Where RESPCODE In (112,113,114,115)
-			    ;
-			""";
+			-- 13.6: Đổi dấu các dòng có RESPCODE thuộc nhóm hoàn/điều chỉnh
+			UPDATE TCKT_NAPAS_IBFT
+			SET DB_TOTAL_TRAN  = -DB_TOTAL_TRAN,
+			    DB_AMOUNT      = -DB_AMOUNT,
+			    DB_IR_FEE      = -DB_IR_FEE,
+			    DB_SV_FEE      = -DB_SV_FEE,
+			    DB_TOTAL_FEE   = -DB_TOTAL_FEE,
+			    DB_TOTAL_MONEY = -DB_TOTAL_MONEY,
+			    CD_TOTAL_TRAN  = -CD_TOTAL_TRAN,
+			    BC_CL_ADJ      = -BC_CL_ADJ,
+			    CD_AMOUNT      = -CD_AMOUNT,
+			    CD_IR_FEE      = -CD_IR_FEE,
+			    CD_SV_FEE      = -CD_SV_FEE,
+			    CD_TOTAL_MONEY = -CD_TOTAL_MONEY,
+			    NAPAS_FEE      = -NAPAS_FEE,
+			    BC_NP_ADJ      = -BC_NP_ADJ,
+			    BC_NP_SUM      = -BC_NP_SUM
+			WHERE RESPCODE IN (112,113,114,115);
+
+						""";
 
 	// lines 2822-2858
 	private static final String STEP_14_SQL = """
