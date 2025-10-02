@@ -811,7 +811,7 @@ BEGIN
         End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
-	--step 8
+	--step 7
     -- ISS-BEN
     Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
@@ -1116,6 +1116,11 @@ BEGIN
             End,
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;
+	
+	
+	
+	
+	
 	--step 8
     -- BEN-ISS
     Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
@@ -1406,7 +1411,12 @@ BEGIN
         Case When B.COLUMN_VALUE Is Null And C.COLUMN_VALUE Is Null And D.COLUMN_VALUE Is Null Then 'Y' Else 'N' End
     ;    
     -- End: Ket thuc phan do du lieu giao dich thanh cong tu SHCLOG_SET_IBFT vao TCKT_NAPAS_IBFT
-    --- Begin: Bat dau do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
+    
+	
+	
+	
+	
+	--- Begin: Bat dau do du lieu giao dich dieu chinh tu SHCLOG_SETT_IBFT_ADJUST vao TCKT_NAPAS_IBFT
 	--step 9
     -- ISS-ACQ
     Insert /*+ parallel(6) */ Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
