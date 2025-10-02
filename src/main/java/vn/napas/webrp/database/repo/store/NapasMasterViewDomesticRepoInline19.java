@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.constant.TableConstant;
+import vn.napas.webrp.database.repo.TableMaintenanceRepository;
 import vn.napas.webrp.report.util.SqlLogUtils;
 
 import java.time.LocalDate;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class NapasMasterViewDomesticRepoInline19 {
     private final NamedParameterJdbcTemplate jdbc;
     @Autowired Proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT;
+    @Autowired TableMaintenanceRepository tableMaintenanceRepository;
     private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public NapasMasterViewDomesticRepoInline19(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
@@ -40,7 +43,8 @@ public class NapasMasterViewDomesticRepoInline19 {
 //        execStep("02", STEP_02_SQL, p);
         proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT.run(from, to, user);
 //        execStep("03", STEP_03_SQL, p);
-        execStep("04", STEP_04_SQL, p);
+//        execStep("04", STEP_04_SQL, p);
+        tableMaintenanceRepository.truncateTable(TableConstant.TCKT_NAPAS_IBFT);
         execStep("05", STEP_05_SQL, p);
         execStep("06", STEP_06_SQL, p);
 //        execStep("07", STEP_07_SQL, p);
@@ -104,16 +108,16 @@ public class NapasMasterViewDomesticRepoInline19 {
 
     // lines 29-31
     private static final String STEP_04_SQL = """
-	--step 4 xoa du lieu bang TCKT_NAPAS_IBFT
+	/*step 4 xoa du lieu bang TCKT_NAPAS_IBFT*/
     EXECUTE IMMEDIATE 'Truncate Table TCKT_NAPAS_IBFT';
 
 """;
 
     // lines 32-438
     private static final String STEP_05_SQL = """
-	--step 5
-    -- Begin: Xu ly tong hop du lieu GD thanh cong tu bang SHCLOG_SETT_IBFT
-    -- ISS-ACQ
+	/*step 5
+     Begin: Xu ly tong hop du lieu GD thanh cong tu bang SHCLOG_SETT_IBFT
+     ISS-ACQ*/
     Insert Into    TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,SUB_BANK,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN, PCODE, TRAN_TYPE,
             SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
             DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, 
