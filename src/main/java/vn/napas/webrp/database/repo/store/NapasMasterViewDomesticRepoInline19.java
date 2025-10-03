@@ -60,7 +60,13 @@ public class NapasMasterViewDomesticRepoInline19 {
 		exec("10", STEP_10_SQL, p);
 		exec("11", STEP_11_SQL, p);
 		exec("12", STEP_12_SQL, p);
-		exec("13", STEP_13_SQL, p);
+//		exec("13", STEP_13_SQL, p);
+		exec("13.1", STEP_13_1_SQL, p);
+		exec("13.2", STEP_13_2_SQL, p);
+		exec("13.3", STEP_13_3_SQL, p);
+		exec("13.4", STEP_13_4_SQL, p);
+		exec("13.5", STEP_13_5_SQL, p);
+		exec("13.6", STEP_13_6_SQL, p);
 		exec("14", STEP_14_SQL, p);
 		exec("15", STEP_15_SQL, p);
 		exec("16", STEP_16_SQL, p);
@@ -3069,176 +3075,257 @@ public class NapasMasterViewDomesticRepoInline19 {
 						""";
 
 	// lines 2791-2821
-	private static final String STEP_13_SQL = """
-			/* step 13 */
-			-- 13.1: Zero các khoản phí/điều chỉnh cho GD hoàn trả 112,114 trừ NSPK & BC Card
-			UPDATE TCKT_NAPAS_IBFT
-			SET DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0,
-			    CD_IR_FEE = 0, CD_SV_FEE = 0,
-			    ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
-			WHERE RESPCODE IN (112,114)
-			  AND BANK_ID   NOT IN (600005, COALESCE(:bccard_id,-1))
-			  AND WITH_BANK NOT IN (600005, COALESCE(:bccard_id,-1));
-			-- Hoàn phí GD hoàn trả một phần của NSPK, BC Card
+//	private static final String STEP_13_SQL = """
+//			/* step 13 */
+//			-- 13.1: Zero các khoản phí/điều chỉnh cho GD hoàn trả 112,114 trừ NSPK & BC Card
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0,
+//			    CD_IR_FEE = 0, CD_SV_FEE = 0,
+//			    ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
+//			WHERE RESPCODE IN (112,114)
+//			  AND BANK_ID   NOT IN (600005, COALESCE(:bccard_id,-1))
+//			  AND WITH_BANK NOT IN (600005, COALESCE(:bccard_id,-1));
+//			-- Hoàn phí GD hoàn trả một phần của NSPK, BC Card
+//
+//			-- 13.2: Tính lại tổng phí bên Nợ
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET DB_TOTAL_FEE = DB_IR_FEE + DB_SV_FEE + CD_SV_FEE;
+//
+//			-- 13.3: Tổng tiền bên Nợ
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET DB_TOTAL_MONEY = DB_TOTAL_FEE + DB_AMOUNT;
+//
+//			-- 13.4: Tổng tiền bên Có
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET CD_TOTAL_MONEY = CD_AMOUNT + CD_IR_FEE;
+//
+//			-- 13.5: Phí NAPAS
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET NAPAS_FEE = CASE
+//			                   WHEN ADJ_FEE <> 0 THEN DB_TOTAL_FEE - CD_IR_FEE - ADJ_FEE
+//			                   ELSE DB_SV_FEE + CD_SV_FEE - NP_ADJ_FEE
+//			                END;
+//
+//			-- 13.6: Đổi dấu các dòng có RESPCODE thuộc nhóm hoàn/điều chỉnh
+//			UPDATE TCKT_NAPAS_IBFT
+//			SET DB_TOTAL_TRAN  = -DB_TOTAL_TRAN,
+//			    DB_AMOUNT      = -DB_AMOUNT,
+//			    DB_IR_FEE      = -DB_IR_FEE,
+//			    DB_SV_FEE      = -DB_SV_FEE,
+//			    DB_TOTAL_FEE   = -DB_TOTAL_FEE,
+//			    DB_TOTAL_MONEY = -DB_TOTAL_MONEY,
+//			    CD_TOTAL_TRAN  = -CD_TOTAL_TRAN,
+//			    BC_CL_ADJ      = -BC_CL_ADJ,
+//			    CD_AMOUNT      = -CD_AMOUNT,
+//			    CD_IR_FEE      = -CD_IR_FEE,
+//			    CD_SV_FEE      = -CD_SV_FEE,
+//			    CD_TOTAL_MONEY = -CD_TOTAL_MONEY,
+//			    NAPAS_FEE      = -NAPAS_FEE,
+//			    BC_NP_ADJ      = -BC_NP_ADJ,
+//			    BC_NP_SUM      = -BC_NP_SUM
+//			WHERE RESPCODE IN (112,113,114,115);
+//
+//						""";
 
-			-- 13.2: Tính lại tổng phí bên Nợ
-			UPDATE TCKT_NAPAS_IBFT
-			SET DB_TOTAL_FEE = DB_IR_FEE + DB_SV_FEE + CD_SV_FEE;
+	// 13.1 Zero các khoản phí/điều chỉnh cho GD hoàn 112,114 (trừ NSPK 600005 & BC
+	// Card :bccard_id)
+	private static final String STEP_13_1_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET DB_IR_FEE = 0, DB_SV_FEE = 0, DB_TOTAL_FEE = 0,
+			        CD_IR_FEE = 0, CD_SV_FEE = 0,
+			        ADJ_FEE = 0, BC_NP_ADJ = 0, BC_NP_SUM = 0
+			    WHERE RESPCODE IN (112,114)
+			      AND BANK_ID   NOT IN (600005, COALESCE(:bccard_id,-1))
+			      AND WITH_BANK NOT IN (600005, COALESCE(:bccard_id,-1))
+			""";
 
-			-- 13.3: Tổng tiền bên Nợ
-			UPDATE TCKT_NAPAS_IBFT
-			SET DB_TOTAL_MONEY = DB_TOTAL_FEE + DB_AMOUNT;
+	// 13.2 Tính lại tổng phí bên Nợ
+	private static final String STEP_13_2_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET DB_TOTAL_FEE = DB_IR_FEE + DB_SV_FEE + CD_SV_FEE
+			""";
 
-			-- 13.4: Tổng tiền bên Có
-			UPDATE TCKT_NAPAS_IBFT
-			SET CD_TOTAL_MONEY = CD_AMOUNT + CD_IR_FEE;
+	// 13.3 Tổng tiền bên Nợ
+	private static final String STEP_13_3_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET DB_TOTAL_MONEY = DB_TOTAL_FEE + DB_AMOUNT
+			""";
 
-			-- 13.5: Phí NAPAS
-			UPDATE TCKT_NAPAS_IBFT
-			SET NAPAS_FEE = CASE
-			                   WHEN ADJ_FEE <> 0 THEN DB_TOTAL_FEE - CD_IR_FEE - ADJ_FEE
-			                   ELSE DB_SV_FEE + CD_SV_FEE - NP_ADJ_FEE
-			                END;
+	// 13.4 Tổng tiền bên Có
+	private static final String STEP_13_4_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET CD_TOTAL_MONEY = CD_AMOUNT + CD_IR_FEE
+			""";
 
-			-- 13.6: Đổi dấu các dòng có RESPCODE thuộc nhóm hoàn/điều chỉnh
-			UPDATE TCKT_NAPAS_IBFT
-			SET DB_TOTAL_TRAN  = -DB_TOTAL_TRAN,
-			    DB_AMOUNT      = -DB_AMOUNT,
-			    DB_IR_FEE      = -DB_IR_FEE,
-			    DB_SV_FEE      = -DB_SV_FEE,
-			    DB_TOTAL_FEE   = -DB_TOTAL_FEE,
-			    DB_TOTAL_MONEY = -DB_TOTAL_MONEY,
-			    CD_TOTAL_TRAN  = -CD_TOTAL_TRAN,
-			    BC_CL_ADJ      = -BC_CL_ADJ,
-			    CD_AMOUNT      = -CD_AMOUNT,
-			    CD_IR_FEE      = -CD_IR_FEE,
-			    CD_SV_FEE      = -CD_SV_FEE,
-			    CD_TOTAL_MONEY = -CD_TOTAL_MONEY,
-			    NAPAS_FEE      = -NAPAS_FEE,
-			    BC_NP_ADJ      = -BC_NP_ADJ,
-			    BC_NP_SUM      = -BC_NP_SUM
-			WHERE RESPCODE IN (112,113,114,115);
+	// 13.5 Phí NAPAS
+	private static final String STEP_13_5_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET NAPAS_FEE = CASE
+			                       WHEN ADJ_FEE <> 0 THEN DB_TOTAL_FEE - CD_IR_FEE - ADJ_FEE
+			                       ELSE DB_SV_FEE + CD_SV_FEE - NP_ADJ_FEE
+			                    END
+			""";
 
-						""";
+	// 13.6 Lật dấu cho nhóm hoàn/điều chỉnh 112,113,114,115
+	private static final String STEP_13_6_SQL = """
+			    UPDATE TCKT_NAPAS_IBFT
+			    SET DB_TOTAL_TRAN  = -DB_TOTAL_TRAN,
+			        DB_AMOUNT      = -DB_AMOUNT,
+			        DB_IR_FEE      = -DB_IR_FEE,
+			        DB_SV_FEE      = -DB_SV_FEE,
+			        DB_TOTAL_FEE   = -DB_TOTAL_FEE,
+			        DB_TOTAL_MONEY = -DB_TOTAL_MONEY,
+			        CD_TOTAL_TRAN  = -CD_TOTAL_TRAN,
+			        BC_CL_ADJ      = -BC_CL_ADJ,
+			        CD_AMOUNT      = -CD_AMOUNT,
+			        CD_IR_FEE      = -CD_IR_FEE,
+			        CD_SV_FEE      = -CD_SV_FEE,
+			        CD_TOTAL_MONEY = -CD_TOTAL_MONEY,
+			        NAPAS_FEE      = -NAPAS_FEE,
+			        BC_NP_ADJ      = -BC_NP_ADJ,
+			        BC_NP_SUM      = -BC_NP_SUM
+			    WHERE RESPCODE IN (112,113,114,115)
+			""";
 
 	// lines 2822-2858
 	private static final String STEP_14_SQL = """
-				--step 14
-			    Update TCKT_NAPAS_IBFT
-			    Set DEBIT = Case
-			                    When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then
-			                        Case
-			                            When DB_AMOUNT > CD_AMOUNT Then DB_AMOUNT - CD_AMOUNT
-			                            Else 0
-			                        End
-			                    When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111) Then
-			                        Case
-			                            When DB_AMOUNT > CD_AMOUNT Then DB_AMOUNT - CD_AMOUNT
-			                            Else 0
-			                        End
-			                    Else
-			                        Case
-			                            When DB_TOTAL_MONEY > CD_TOTAL_MONEY Then DB_TOTAL_MONEY - CD_TOTAL_MONEY
-			                            Else 0
-			                        End
-			                End
-			        ,CREDIT = Case
-			                        When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 And TRAN_TYPE = 'POS' Then
-			                            Case
-			                                When CD_AMOUNT > DB_AMOUNT Then CD_AMOUNT - DB_AMOUNT
-			                                Else 0
-			                            End
-			                        When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111) Then
-			                            Case
-			                                When CD_AMOUNT > DB_AMOUNT Then CD_AMOUNT - DB_AMOUNT
-			                                Else 0
-			                            End
-			                        Else
-			                            Case
-			                                When CD_TOTAL_MONEY > DB_TOTAL_MONEY Then CD_TOTAL_MONEY - DB_TOTAL_MONEY
-			                                Else 0
-			                            End
-			                   End
-			    ;
-			""";
+			/* STEP 14: Tính DEBIT / CREDIT */
+			UPDATE TCKT_NAPAS_IBFT
+			SET
+			  DEBIT = CASE
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN
+			                 CASE WHEN DB_AMOUNT > CD_AMOUNT THEN DB_AMOUNT - CD_AMOUNT ELSE 0 END
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111) THEN
+			                 CASE WHEN DB_AMOUNT > CD_AMOUNT THEN DB_AMOUNT - CD_AMOUNT ELSE 0 END
+			            ELSE
+			                 CASE WHEN DB_TOTAL_MONEY > CD_TOTAL_MONEY THEN DB_TOTAL_MONEY - CD_TOTAL_MONEY ELSE 0 END
+			          END,
+			  CREDIT = CASE
+			             WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 AND TRAN_TYPE = 'POS' THEN
+			                  CASE WHEN CD_AMOUNT > DB_AMOUNT THEN CD_AMOUNT - DB_AMOUNT ELSE 0 END
+			             WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111) THEN
+			                  CASE WHEN CD_AMOUNT > DB_AMOUNT THEN CD_AMOUNT - DB_AMOUNT ELSE 0 END
+			             ELSE
+			                  CASE WHEN CD_TOTAL_MONEY > DB_TOTAL_MONEY THEN CD_TOTAL_MONEY - DB_TOTAL_MONEY ELSE 0 END
+			           END
+			;
+						""";
 
 	// lines 2859-2933
+//	private static final String STEP_15_SQL = 
 	private static final String STEP_15_SQL = """
-			    --step 15
-			    Insert Into TCKT_NAPAS_IBFT(MSGTYPE_DETAIL,OD_BY, SETT_DATE,EDIT_DATE,SETTLEMENT_CURRENCY,RESPCODE,GROUP_TRAN,
-			        PCODE, TRAN_TYPE,SERVICE_CODE, GROUP_ROLE,BANK_ID, WITH_BANK, DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE,
-			        DB_TOTAL_FEE, DB_TOTAL_MONEY, CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY, NAPAS_FEE, DEBIT,
-			        CREDIT, ADJ_FEE, NP_ADJ_FEE, BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ, STEP, SUB_BANK, LIQUIDITY)
-			    Select MSGTYPE_DETAIL,null As OD_BY,SETT_DATE, EDIT_DATE,SETTLEMENT_CURRENCY,null RESPCODE,GROUP_TRAN,null PCODE,GROUP_TRAN As TRAN_TYPE,
-			        SERVICE_CODE, null As GROUP_ROLE,BANK_ID,WITH_BANK,SUM(DB_TOTAL_TRAN) DB_TOTAL_TRAN,SUM(DB_AMOUNT) DB_AMOUNT,SUM(DB_IR_FEE) DB_IR_FEE,
-			        SUM(DB_SV_FEE) DB_SV_FEE, SUM(DB_TOTAL_FEE) DB_TOTAL_FEE,SUM(DB_TOTAL_MONEY) DB_TOTAL_MONEY,SUM(CD_TOTAL_TRAN) CD_TOTAL_TRAN,
-			        SUM(CD_AMOUNT) CD_AMOUNT, SUM(CD_IR_FEE) CD_IR_FEE,SUM(CD_SV_FEE) CD_SV_FEE,
-			        SUM(CD_TOTAL_MONEY) CD_TOTAL_MONEY,SUM(NAPAS_FEE) NAPAS_FEE,
-			        Case
-			            When SUM(Case
-			                            When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then DB_AMOUNT  --ninhnt them 980478 cho du an IBFT2.0
-			                            When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then DB_AMOUNT
-			                            Else DB_TOTAL_MONEY End
-			                        )
-			                >
-			                SUM(
-			                    Case When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then CD_AMOUNT  --ninhnt them 980478 cho du an IBFT2.0
-			                    When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then CD_AMOUNT
-			                    Else CD_TOTAL_MONEY End
-			                )
-			                Then SUM(Case
-			                            When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then DB_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                            When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then DB_AMOUNT
-			                            Else DB_TOTAL_MONEY End
-			                        )
-			                -
-			                SUM(
-			                    Case When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then CD_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                    When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then CD_AMOUNT
-			                    Else CD_TOTAL_MONEY End
-			                )
-			            Else 0
-			        End As DEBIT,
-			        Case
-			            When SUM(
-			                Case
-			                    When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then CD_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                    When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then CD_AMOUNT
-			                    Else CD_TOTAL_MONEY
-			                End
-			                )
-			                >
-			                SUM(
-			                    Case
-			                        When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then DB_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                        When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then DB_AMOUNT
-			                        Else DB_TOTAL_MONEY
-			                    End
-			                )
-			                Then
-			                    SUM(
-			                    Case
-			                        When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then CD_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                        When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then CD_AMOUNT
-			                        Else CD_TOTAL_MONEY
-			                    End
-			                    )
-			                    -
-			                    SUM(
-			                        Case
-			                            When BANK_ID In (602907,605609,600005,600006, 600007,980471,971100,971111,980478) Then DB_AMOUNT --ninhnt them 980478 cho du an IBFT2.0
-			                            When BANK_ID = GET_BCCARD_ID() And SETTLEMENT_CURRENCY = 704 Then DB_AMOUNT
-			                            Else DB_TOTAL_MONEY
-			                        End
-			                    )
-			            Else 0
-			        End As CREDIT, SUM(ADJ_FEE), SUM(NP_ADJ_FEE) NP_ADJ_FEE, Sum(BC_NP_ADJ) BC_NP_ADJ, Sum(BC_NP_SUM) BC_NP_SUM, Sum(BC_CL_ADJ) BC_CL_ADJ, 'B-GROUP_BY_SV', SUB_BANK, LIQUIDITY
-			    From TCKT_NAPAS_IBFT
-			    Where STEP = 'A-BY_ROLE'
-			        Group By MSGTYPE_DETAIL,SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY,GROUP_TRAN, SERVICE_CODE,BANK_ID, WITH_BANK, SUB_BANK, LIQUIDITY
-			    ;
+					/^step 15^/
+			INSERT INTO TCKT_NAPAS_IBFT(
+			  MSGTYPE_DETAIL, OD_BY, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY, RESPCODE, GROUP_TRAN,
+			  PCODE, TRAN_TYPE, SERVICE_CODE, GROUP_ROLE, BANK_ID, WITH_BANK,
+			  DB_TOTAL_TRAN, DB_AMOUNT, DB_IR_FEE, DB_SV_FEE, DB_TOTAL_FEE, DB_TOTAL_MONEY,
+			  CD_TOTAL_TRAN, CD_AMOUNT, CD_IR_FEE, CD_SV_FEE, CD_TOTAL_MONEY,
+			  NAPAS_FEE, DEBIT, CREDIT, ADJ_FEE, NP_ADJ_FEE, BC_NP_ADJ, BC_NP_SUM, BC_CL_ADJ,
+			  STEP, SUB_BANK, LIQUIDITY
+			)
+			SELECT
+			  MSGTYPE_DETAIL,
+			  NULL AS OD_BY,
+			  SETT_DATE,
+			  EDIT_DATE,
+			  SETTLEMENT_CURRENCY,
+			  NULL AS RESPCODE,
+			  GROUP_TRAN,
+			  NULL AS PCODE,
+			  GROUP_TRAN AS TRAN_TYPE,
+			  SERVICE_CODE,
+			  NULL AS GROUP_ROLE,
+			  BANK_ID,
+			  WITH_BANK,
 
-			    -- Cong bank
+			  SUM(DB_TOTAL_TRAN) AS DB_TOTAL_TRAN,
+			  SUM(DB_AMOUNT)     AS DB_AMOUNT,
+			  SUM(DB_IR_FEE)     AS DB_IR_FEE,
+			  SUM(DB_SV_FEE)     AS DB_SV_FEE,
+			  SUM(DB_TOTAL_FEE)  AS DB_TOTAL_FEE,
+			  SUM(DB_TOTAL_MONEY) AS DB_TOTAL_MONEY,
+
+			  SUM(CD_TOTAL_TRAN) AS CD_TOTAL_TRAN,
+			  SUM(CD_AMOUNT)     AS CD_AMOUNT,
+			  SUM(CD_IR_FEE)     AS CD_IR_FEE,
+			  SUM(CD_SV_FEE)     AS CD_SV_FEE,
+			  SUM(CD_TOTAL_MONEY) AS CD_TOTAL_MONEY,
+
+			  SUM(NAPAS_FEE)     AS NAPAS_FEE,
+
+			  /* DEBIT */
+			  CASE
+			    WHEN
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN DB_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN DB_AMOUNT
+			            ELSE DB_TOTAL_MONEY
+			          END)
+			      >
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN CD_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN CD_AMOUNT
+			            ELSE CD_TOTAL_MONEY
+			          END)
+			    THEN
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN DB_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN DB_AMOUNT
+			            ELSE DB_TOTAL_MONEY
+			          END)
+			      -
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN CD_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN CD_AMOUNT
+			            ELSE CD_TOTAL_MONEY
+			          END)
+			    ELSE 0
+			  END AS DEBIT,
+
+			  /* CREDIT */
+			  CASE
+			    WHEN
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN CD_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN CD_AMOUNT
+			            ELSE CD_TOTAL_MONEY
+			          END)
+			      >
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN DB_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN DB_AMOUNT
+			            ELSE DB_TOTAL_MONEY
+			          END)
+			    THEN
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN CD_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN CD_AMOUNT
+			            ELSE CD_TOTAL_MONEY
+			          END)
+			      -
+			      SUM(CASE
+			            WHEN BANK_ID IN (602907,605609,600005,600006,600007,980471,971100,971111,980478) THEN DB_AMOUNT
+			            WHEN BANK_ID = :bccard_id AND SETTLEMENT_CURRENCY = 704 THEN DB_AMOUNT
+			            ELSE DB_TOTAL_MONEY
+			          END)
+			    ELSE 0
+			  END AS CREDIT,
+
+			  SUM(ADJ_FEE)       AS ADJ_FEE,
+			  SUM(NP_ADJ_FEE)    AS NP_ADJ_FEE,
+			  SUM(BC_NP_ADJ)     AS BC_NP_ADJ,
+			  SUM(BC_NP_SUM)     AS BC_NP_SUM,
+			  SUM(BC_CL_ADJ)     AS BC_CL_ADJ,
+
+			  'B-GROUP_BY_SV' AS STEP,
+			  SUB_BANK,
+			  LIQUIDITY
+			FROM TCKT_NAPAS_IBFT
+			WHERE STEP = 'A-BY_ROLE'
+			GROUP BY
+			  MSGTYPE_DETAIL, SETT_DATE, EDIT_DATE, SETTLEMENT_CURRENCY,
+			  GROUP_TRAN, SERVICE_CODE, BANK_ID, WITH_BANK, SUB_BANK, LIQUIDITY
+			;
 			""";
 
 	// lines 2934-3008
