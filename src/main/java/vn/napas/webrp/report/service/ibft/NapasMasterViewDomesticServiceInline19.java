@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.constant.RoleConstant;
 import vn.napas.webrp.constant.TableConstant;
 import vn.napas.webrp.database.repo.TableMaintenanceRepository;
 import vn.napas.webrp.database.repo.store.NapasMasterViewDomesticRepoInline19;
@@ -45,7 +46,7 @@ public class NapasMasterViewDomesticServiceInline19 {
         // Hook: if step 2 requires calling an earlier job, do it here
         // insertTcktSessionDomesticIbft(fromDate, toDate, user);
 
-        repo.executeAll(fromDate, toDate, listSms);
+        repo.executeAll(fromDate, toDate, listSms, RoleConstant.Role_Type_Run_Sum);
 
         logErr("0", "End", "NAPAS_MASTER_VIEW_DOMESTIC_IBFT");
     }

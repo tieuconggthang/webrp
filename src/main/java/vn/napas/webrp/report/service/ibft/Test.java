@@ -2,6 +2,7 @@ package vn.napas.webrp.report.service.ibft;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +32,7 @@ import vn.napas.webrp.database.repo.store.Proc_CHECK_BACKEND_DOUBLE.Summary;
 import vn.napas.webrp.report.dto.EcomSearchForDisputeRequest;
 import vn.napas.webrp.report.service.DisputeService;
 
-@Service ("test ibft")
+@Service("test ibft")
 @Slf4j
 public class Test {
 	@Autowired
@@ -41,7 +42,7 @@ public class Test {
 //	@Autowired
 //	private GatherStats gatherStats; 
 //	
-	
+
 	@Autowired
 	private TableMaintenanceRepository tablMaintenanceRepos;
 	@Autowired
@@ -75,24 +76,26 @@ public class Test {
 	Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT proc_NAPAS_SHC_TMP_DOMESTIC_IBFT;
 	@Autowired
 	NapasMasterViewDomesticIbftService napasMasterViewDomesticIbftService;
-	@Autowired NapasMasterViewDomesticServiceInline19 napasMasterViewDomesticServiceInline19;
+	@Autowired
+	NapasMasterViewDomesticServiceInline19 napasMasterViewDomesticServiceInline19;
 
-	
 	@EventListener(ApplicationReadyEvent.class)
 	public void test() {
 //		testMainenance();
-//		insertIsoMsgTurnfromIsoMSg();	
-//		insertIsoMsgTurnfromV_APG10_TRANS();
-//		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
-		LocalDate localDatenow = LocalDate.now();
 		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
+		// 4
+		insertIsoMsgTurnfromIsoMSg(localDateTest);
+//		5
+//		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
+//		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
+//		LocalDate localDatenow = LocalDate.now();
+//		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 //		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
-		
-		
+
 		// 10.
 //		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
 		// 11.
-		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
+//		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
 //		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
@@ -121,9 +124,9 @@ public class Test {
 //		// 31
 //		summaryFEE_KEY(localDateTest, 1);
 //		// 32 type name = new type();
-		//33
+		// 33
 //		MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDateTest);
-		//33
+		// 33
 //		NAPAS_CAL_FEE_LOCAL_IBFT(localDateTest);
 //		// 34
 //		checkSpecCharInTrans();
@@ -133,31 +136,37 @@ public class Test {
 //		NAPAS_SHC_TMP_DOMESTIC_IBFT(localDateTest, localDateTest, "java", 0);
 //		// 37
 //
-		NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDateTest, localDateTest, "java");
+//		NAPAS_MASTER_VIEW_DOMESTIC_IBFT(localDateTest, localDateTest, "java");
 
 	}
-	
+
 	private void testMainenance() {
 		log.info("start testMainenance");
+		tableMaintenanceRepository.truncateTable(TableConstant.SHCLOG_SETT_IBFT);
 		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
+//		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
 		log.info("finish testMainenance");
 	}
-	
+
 	private void insertIsoMsgTurnfromIsoMSg(LocalDate localDate) {
 		try {
 			log.info("insertIsoMsgTurnfromIsoMSg");
 //			LocalDate localDate = LocalDate.now();
 //			LocalDate localDate = LocalDate.of(2025, 9, 9);
-		int rowcount= 	isoMessageTmpTurnLoader.insertFromSourceIsomessage(localDate, null, null, null, null);
-		log.info("insertIsoMsgTurnfromIsoMSg" + rowcount);
+			List<String> mtiList = Arrays.asList("0200", "0210");
+			List<String> procPrefixes = Arrays.asList("91", "42");
+			List<String> issList = Arrays.asList("980472", "980471", "980474", "980475");
+			String acqList = "605609";
+			int rowcount = isoMessageTmpTurnLoader.insertFromSourceIsomessage(localDate, acqList, mtiList, issList, procPrefixes);
+
+			log.info("insertIsoMsgTurnfromIsoMSg" + rowcount);
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
 		} finally {
 
 		}
 	}
-	
-	
+
 	private void insertIsoMsgTurnfromV_APG10_TRANS(LocalDate localDate) {
 		try {
 			log.info("insertIsoMsgTurnfromIsoMSg");
@@ -169,10 +178,7 @@ public class Test {
 
 		}
 	}
-	
-	
-	
-	
+
 	private void insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO() {
 		try {
 			log.info("insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO");
@@ -185,7 +191,6 @@ public class Test {
 		}
 	}
 
-	
 	private void gatherTable(String chemaName, String tableName) {
 		try {
 			log.info("Starting");
@@ -469,7 +474,7 @@ public class Test {
 		try {
 			log.info("Starting");
 //			napasMasterViewDomesticIbftService.run(pQRY_FROM_DATE, pQRY_TO_DATE, user);
-			
+
 			napasMasterViewDomesticServiceInline19.run(pQRY_FROM_DATE, pQRY_FROM_DATE, user);
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
@@ -492,5 +497,5 @@ public class Test {
 
 		tablMaintenanceRepos.truncateTable(tableName);
 	}
-	
+
 }
