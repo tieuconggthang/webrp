@@ -84,20 +84,22 @@ public class Test {
 //		testMainenance();
 		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 4
-		insertIsoMsgTurnfromIsoMSg(localDateTest);
+//		insertIsoMsgTurnfromIsoMSg(localDateTest);
 //		5
 //		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
+		//6
 //		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
 //		LocalDate localDatenow = LocalDate.now();
 //		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
+		//8
 //		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
 
-		// 10.
+		// 9.
 //		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
-		// 11.
+		// 10.
 //		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
-//		MERGE_SHC_SETT_IBFT_200();
+		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
 //		// 20.
 //		checkBackEdnDouble();
@@ -142,9 +144,9 @@ public class Test {
 
 	private void testMainenance() {
 		log.info("start testMainenance");
-		tableMaintenanceRepository.truncateTable(TableConstant.SHCLOG_SETT_IBFT);
-		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
+//		tableMaintenanceRepository.truncateTable(TableConstant.SHCLOG_SETT_IBFT);
 //		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
+		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_68_TO);
 		log.info("finish testMainenance");
 	}
 
@@ -171,7 +173,8 @@ public class Test {
 		try {
 			log.info("insertIsoMsgTurnfromIsoMSg");
 //			LocalDate localDate =LocalDate.of(2025, 9, 9);
-			isoMessageTmpTurnLoader.insertFromSourceV_APG10_TRANS(localDate);
+			int row = isoMessageTmpTurnLoader.insertFromSourceV_APG10_TRANS(localDate);
+			log.info("row insert: " + row);
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
 		} finally {

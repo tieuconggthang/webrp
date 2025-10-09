@@ -20,12 +20,14 @@ AS
     iSTT integer;
     rowupdate integer;
 BEGIN
+	--step 1
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
     Values(sysdate,0,'Begin Merge SHCLOG_SETT_IBFT and ISOMESSAGE_TMP_TURN','MERGE_SHC_SETT_IBFT_200');
     commit;
+	-- step 2 tach thanh hai buoc 2.1 va 2.2
     Select /*+ index (shclog IDTT_SETT_IBFT) */ Max(STT) Into iSTT
     From SHCLOG_SETT_IBFT;
-    
+    -- step 3
     MERGE INTO (Select MSGTYPE,PAN,PCODE,Amount,ACQ_CURRENCY_CODE,TRACE,LOCAL_TIME,LOCAL_DATE,SETTLEMENT_DATE,
             ACQUIRER,ISSUER,RESPCODE,MERCHANT_TYPE,MERCHANT_TYPE_ORIG,AUTHNUM,SETT_CURRENCY_CODE,TERMID,ADD_INFO,ACCTNUM,
             ISS_CURRENCY_CODE,ORIGTRACE,ORIGISS,ORIGRESPCODE,CH_CURRENCY_CODE,ACQUIRER_FE,ACQUIRER_RP,ISSUER_FE,
@@ -142,18 +144,22 @@ BEGIN
             B.SETTLEMENT_CODE, B.SETTLEMENT_RATE,B.ISS_CONV_RATE,B.TCC,B.REF_NO, trunc(B.Tnx_Stamp),to_char(B.tnx_stamp,'HH24MISS')
             ,B.CARD_ACCEPT_NAME_LOCATION, B.CARD_ACCEPT_ID_CODE,
             NP_CONVERT_LOCAL_DATE(B.SETTLE_DATE,Trunc(Sysdate)), To_Number(B.PROC_CODE),B.ACCOUNT_NO,B.DEST_ACCOUNT);   
-    Commit;   
+    Commit;  
+		-- step 4
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
     Values(sysdate,0,'Finish Merge SHCLOG_SETT_IBFT and ISOMESSAGE_TMP_TURN','MERGE_SHC_SETT_IBFT_200');
     commit; 
+	--step 5
     Update SHCLOG_SETT_IBFT
     Set STT = rownum + iSTT
     Where STT is null and Origrespcode =97;
     rowupdate :=sql%rowcount;
-    commit;    
+    commit; 
+		-- step 6
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
     Values(sysdate,0,'Finish Update STT for '||rowupdate||' transactions ORIGRESPCODE = 97 in SHCLOG_SETT_IBFT','MERGE_SHC_SETT_IBFT_200');
     commit; 
+	-- step 7
     Insert Into ERR_EX(ERR_TIME,ERR_CODE,ERR_DETAIL,ERR_MODULE)
     Values(sysdate,0,'End Merge SHCLOG_SETT_IBFT and ISOMESSAGE_TMP_TURN','MERGE_SHC_SETT_IBFT_200');
     commit;
