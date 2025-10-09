@@ -2992,4 +2992,16 @@ public class Proc_INSERT_TCKT_SESSION_DOMESTIC_IBFT {
 		int rows = jdbc.update(sql, p);
 		log.info("{}: {} row(s)", tag, rows);
 	}
+	
+	
+//	private void exec(String tag, String sql, ) {
+//		String trimmed = sql == null ? "" : sql.trim();
+//		if (trimmed.isEmpty()) {
+//			log.info("{}: SKIPPED (chưa thay SQL TiDB)", tag);
+//			return;
+//		}
+//		log.info("sql tag: {}", SqlLogUtils.renderSql(sql, p.getValues()));
+//		int rows = jdbc.update(sql, p);
+//		log.info("{}: {} row(s)", tag, rows);
+//	}
 }

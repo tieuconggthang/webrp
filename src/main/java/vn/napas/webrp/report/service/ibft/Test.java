@@ -24,6 +24,7 @@ import vn.napas.webrp.database.repo.store.Proc_CHECK_BACKEND_DOUBLE;
 import vn.napas.webrp.database.repo.store.Proc_CHECK_SPEC_CHAR_IBFT;
 import vn.napas.webrp.database.repo.store.Proc_CHECK_TC_NULL;
 import vn.napas.webrp.database.repo.store.Proc_GET_ISOMESSAGE_TMP_TURN;
+import vn.napas.webrp.database.repo.store.Proc_MERGE_SHC_SETT_IBFT_200;
 import vn.napas.webrp.database.repo.store.Proc_MergeFeeKeyToShclogSettIbft;
 import vn.napas.webrp.database.repo.store.Proc_NAPAS_SHC_TMP_DOMESTIC_IBFT;
 import vn.napas.webrp.database.repo.store.Proc_NapasCalFeeLocalIbft;
@@ -78,6 +79,8 @@ public class Test {
 	NapasMasterViewDomesticIbftService napasMasterViewDomesticIbftService;
 	@Autowired
 	NapasMasterViewDomesticServiceInline19 napasMasterViewDomesticServiceInline19;
+	@Autowired
+	Proc_MERGE_SHC_SETT_IBFT_200 proc_MERGE_SHC_SETT_IBFT_200;
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void test() {
@@ -87,11 +90,11 @@ public class Test {
 //		insertIsoMsgTurnfromIsoMSg(localDateTest);
 //		5
 //		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
-		//6
+		// 6
 //		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
 //		LocalDate localDatenow = LocalDate.now();
 //		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
-		//8
+		// 8
 //		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
 
 		// 9.
@@ -159,7 +162,8 @@ public class Test {
 			List<String> procPrefixes = Arrays.asList("91", "42");
 			List<String> issList = Arrays.asList("980472", "980471", "980474", "980475");
 			String acqList = "605609";
-			int rowcount = isoMessageTmpTurnLoader.insertFromSourceIsomessage(localDate, acqList, mtiList, issList, procPrefixes);
+			int rowcount = isoMessageTmpTurnLoader.insertFromSourceIsomessage(localDate, acqList, mtiList, issList,
+					procPrefixes);
 
 			log.info("insertIsoMsgTurnfromIsoMSg" + rowcount);
 		} catch (Exception e) {
@@ -221,7 +225,8 @@ public class Test {
 	private void MERGE_SHC_SETT_IBFT_200() {
 		try {
 			log.info("Starting MERGE_SHC_SETT_IBFT_200");
-			mergeIbft200JdbcService.runAll();
+//			mergeIbft200JdbcService.runAll();
+			proc_MERGE_SHC_SETT_IBFT_200.runAll();
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);
 		} finally {
