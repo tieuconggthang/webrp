@@ -885,3 +885,187 @@ CREATE TABLE TGTT_CONFIG (
   REPORT_BANK VARCHAR(20) DEFAULT NULL,
   TGTT_SHORT VARCHAR(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
+CREATE TABLE CITAD_MERGE (
+  tidb_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+
+  CF_DATE DATETIME DEFAULT NULL,
+  CF_USER VARCHAR(30) DEFAULT NULL,
+  BANK_ID BIGINT DEFAULT NULL,
+  MERGE_TO BIGINT DEFAULT NULL,
+  IS_ACTIVE VARCHAR(1) DEFAULT NULL,
+  DEL_USER VARCHAR(30) DEFAULT NULL,
+  DEL_DATE DATETIME DEFAULT NULL,
+  STT BIGINT DEFAULT NULL,
+  APP_DATE DATETIME DEFAULT NULL,
+  ATTACH_FILE VARCHAR(100) DEFAULT NULL,
+  PASS_DATE DATETIME DEFAULT NULL,
+  PASS_USER VARCHAR(30) DEFAULT NULL,
+  EDIT_DATE DATETIME DEFAULT NULL,
+  EDIT_USER VARCHAR(30) DEFAULT NULL,
+  PASS_EDIT_DATE DATETIME DEFAULT NULL,
+  PASS_EDIT_USER VARCHAR(30) DEFAULT NULL,
+  END_DATE DATETIME DEFAULT NULL,
+  FILEFORMAT VARCHAR(200) DEFAULT NULL,
+  FILE2 LONGBLOB DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
+
+CREATE TABLE TGTT_20 (
+  tidb_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+
+  TGTT_ID VARCHAR(20) DEFAULT NULL,
+  TGTT_NAME VARCHAR(200) DEFAULT NULL,
+  TGTT_SHORT VARCHAR(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
+
+CREATE OR REPLACE VIEW GET_LIQUIDITY_BANK AS
+SELECT DISTINCT column_value
+FROM (
+  /* Nhóm bank “Hiệu lực” */
+  SELECT clr.bank_id AS column_value
+  FROM citad_liquidity_risk clr
+  WHERE clr.status = 'Hiệu lực'
+    AND NOW() > clr.app_date        -- nếu app_date là DATETIME; nếu là DATE thì CURRENT_DATE() > app_date
+
+  UNION ALL
+  /* Các bank merge vào bank “Hiệu lực” */
+  SELECT cm.bank_id AS column_value
+  FROM citad_merge cm
+  WHERE cm.merge_to IN (
+      SELECT clr.bank_id
+      FROM citad_liquidity_risk clr
+      WHERE clr.status = 'Hiệu lực'
+        AND NOW() > clr.app_date
+  )
+    AND cm.is_active = 'Y'
+
+  UNION ALL
+  /* TGTT mapping vào bank “Hiệu lực” */
+  SELECT CAST(tc.tgtt_id AS UNSIGNED) AS column_value
+  FROM tgtt_config tc
+  WHERE tc.report_bank IN (
+      SELECT clr.bank_id
+      FROM citad_liquidity_risk clr
+      WHERE clr.status = 'Hiệu lực'
+        AND NOW() > clr.app_date
+  )
+) s;
+
+
+
+
+
+-- test.V_ISOMESSAGE_TMP_TURN_0200 source
+
+CREATE OR REPLACE
+ALGORITHM = UNDEFINED VIEW `V_ISOMESSAGE_TMP_TURN_0200` (`card_no_trim`,
+`trace_no_num`,
+`term_id`,
+`local_mmdd`,
+`local_time_num`,
+`acq_id_num`,
+`MTI`,
+`BEN_ID`,
+`SERVICE_CODE`,
+`ISS_ID`,
+`PROC_CODE`,
+`IBFT_INFO`,
+`ACQ_COUNTRY`,
+`POS_ENTRY_CODE`,
+`POS_CONDITION_CODE`,
+`ADDRESPONSE`,
+`MVV`,
+`F49`,
+`SETTLEMENT_CODE`,
+`SETTLEMENT_RATE`,
+`ISS_CONV_RATE`,
+`TCC`,
+`REF_NO`,
+`TNX_STAMP`,
+`CARD_ACCEPT_NAME_LOCATION`,
+`CARD_ACCEPT_ID_CODE`,
+`SETTLE_DATE`,
+`ACCOUNT_NO`,
+`DEST_ACCOUNT`,
+`MCC`,
+`APPROVAL_CODE`,
+`ADD_INFO`,
+`amount_raw_num`,
+`amount_ins_num`,
+`f4_num`,
+`f5_num`,
+`f6_num`,
+`trace2_num`) AS
+SELECT
+    TRIM(`B`.`CARD_NO`) AS `card_no_trim`,
+    CASE
+        WHEN `B`.`TRACE_NO` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(`B`.`TRACE_NO` AS DECIMAL(18, 6))
+    END AS `trace_no_num`,
+    SUBSTRING(TRIM(`B`.`TERM_ID`), 1, 8) AS `term_id`,
+    CASE
+        WHEN `B`.`LOCAL_DATE` REGEXP _UTF8MB4'^[0-9]{4}$' THEN LPAD(`B`.`LOCAL_DATE`, 4, _UTF8MB4'0')
+        WHEN `B`.`LOCAL_DATE` REGEXP _UTF8MB4'^[0-9]{8}$' THEN SUBSTRING(`B`.`LOCAL_DATE`, 5, 4)
+        ELSE NULL
+    END AS `local_mmdd`,
+    CASE
+        WHEN `B`.`LOCAL_TIME` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(`B`.`LOCAL_TIME` AS DECIMAL(18, 6))
+    END AS `local_time_num`,
+    CASE
+        WHEN `B`.`ACQ_ID` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(`B`.`ACQ_ID` AS DECIMAL(18, 6))
+    END AS `acq_id_num`,
+    `B`.`MTI` AS `MTI`,
+    `B`.`BEN_ID` AS `BEN_ID`,
+    `B`.`SERVICE_CODE` AS `SERVICE_CODE`,
+    `B`.`ISS_ID` AS `ISS_ID`,
+    `B`.`PROC_CODE` AS `PROC_CODE`,
+    `B`.`IBFT_INFO` AS `IBFT_INFO`,
+    `B`.`ACQ_COUNTRY` AS `ACQ_COUNTRY`,
+    `B`.`POS_ENTRY_CODE` AS `POS_ENTRY_CODE`,
+    `B`.`POS_CONDITION_CODE` AS `POS_CONDITION_CODE`,
+    `B`.`ADDRESPONSE` AS `ADDRESPONSE`,
+    `B`.`MVV` AS `MVV`,
+    `B`.`F49` AS `F49`,
+    `B`.`SETTLEMENT_CODE` AS `SETTLEMENT_CODE`,
+    `B`.`SETTLEMENT_RATE` AS `SETTLEMENT_RATE`,
+    `B`.`ISS_CONV_RATE` AS `ISS_CONV_RATE`,
+    `B`.`TCC` AS `TCC`,
+    `B`.`REF_NO` AS `REF_NO`,
+    `B`.`TNX_STAMP` AS `TNX_STAMP`,
+    `B`.`CARD_ACCEPT_NAME_LOCATION` AS `CARD_ACCEPT_NAME_LOCATION`,
+    `B`.`CARD_ACCEPT_ID_CODE` AS `CARD_ACCEPT_ID_CODE`,
+    `B`.`SETTLE_DATE` AS `SETTLE_DATE`,
+    `B`.`ACCOUNT_NO` AS `ACCOUNT_NO`,
+    `B`.`DEST_ACCOUNT` AS `DEST_ACCOUNT`,
+    `B`.`MCC` AS `MCC`,
+    `B`.`APPROVAL_CODE` AS `APPROVAL_CODE`,
+    `B`.`ADD_INFO` AS `ADD_INFO`,
+    CASE
+        WHEN `B`.`AMOUNT` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(`B`.`AMOUNT` AS DECIMAL(20))
+    END AS `amount_raw_num`,
+    CASE
+        WHEN `B`.`AMOUNT` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(SUBSTRING(`B`.`AMOUNT`, 1, GREATEST(CHAR_LENGTH(`B`.`AMOUNT`)-2, 0)) AS DECIMAL(20))
+    END AS `amount_ins_num`,
+    CASE
+        WHEN `B`.`F4` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(SUBSTRING(`B`.`F4`, 1, GREATEST(CHAR_LENGTH(`B`.`F4`)-2, 0)) AS DECIMAL(20))
+    END AS `f4_num`,
+    CASE
+        WHEN `B`.`F5` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(SUBSTRING(`B`.`F5`, 1, GREATEST(CHAR_LENGTH(`B`.`F5`)-2, 0)) AS DECIMAL(20))
+    END AS `f5_num`,
+    CASE
+        WHEN `B`.`F6` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(SUBSTRING(`B`.`F6`, 1, GREATEST(CHAR_LENGTH(`B`.`F6`)-2, 0)) AS DECIMAL(20))
+    END AS `f6_num`,
+    CASE
+        WHEN `B`.`TRACE_NO` REGEXP _UTF8MB4'^[0-9]+$' THEN CAST(CONCAT(_UTF8MB4'2', `B`.`TRACE_NO`) AS DECIMAL(20))
+    END AS `trace2_num`
+FROM
+    `test`.`ISOMESSAGE_TMP_TURN` AS `B`
+WHERE
+    `B`.`CARD_NO` IS NOT NULL
+    AND `B`.`MTI` = _UTF8MB4'0200'
+    AND `B`.`BEN_ID` REGEXP _UTF8MB4'^[0-9]+$'
+    AND `B`.`TRACE_NO` REGEXP _UTF8MB4'^[0-9]+$';
