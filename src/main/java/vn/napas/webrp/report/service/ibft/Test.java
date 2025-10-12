@@ -84,21 +84,21 @@ public class Test {
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void test() {
-//		testMainenance();
+		testMainenance();
 		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 4
-//		insertIsoMsgTurnfromIsoMSg(localDateTest);
+		insertIsoMsgTurnfromIsoMSg(localDateTest);
 //		5
-//		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
+		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
 		// 6
 //		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
 //		LocalDate localDatenow = LocalDate.now();
 //		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 8
-//		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
+		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
 
 		// 9.
-//		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
+		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
 		// 10.
 //		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
@@ -109,7 +109,7 @@ public class Test {
 //		// 21
 //		indexFee();
 //		// 22
-		calFeeTransaction();
+//		calFeeTransaction();
 //		// 23
 //		updateISSFee();
 //		// 24
@@ -147,8 +147,8 @@ public class Test {
 
 	private void testMainenance() {
 		log.info("start testMainenance");
-//		tableMaintenanceRepository.truncateTable(TableConstant.SHCLOG_SETT_IBFT);
-//		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
+		tableMaintenanceRepository.truncateTable(TableConstant.SHCLOG_SETT_IBFT);
+		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_TURN);
 		tableMaintenanceRepository.truncateTable(TableConstant.ISOMESSAGE_TMP_68_TO);
 		log.info("finish testMainenance");
 	}
@@ -212,7 +212,7 @@ public class Test {
 
 	private void getIsoMsgTmpTurnToSHCLOG_SETT_IBFT() {
 		try {
-			log.info("Starting getIsoMsgTmpTurn");
+			log.info("Starting 5.GET_ISOMESSAGE_TMP_TURN.prc");
 			int rowEffect = proc_GET_ISOMESSAGE_TMP_TURN.execute();
 			log.info("Row udpated: {}", rowEffect);
 		} catch (Exception e) {

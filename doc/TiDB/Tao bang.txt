@@ -522,7 +522,8 @@ CREATE TABLE `SHCLOG_SETT_IBFT` (
   KEY `SHCLOG_BB_BIN_SETT_IBFT` (`BB_BIN`),
   KEY `SHCLOG_ISSUER_RP_SETT_IBFT` (`ISSUER_RP`),
   KEY `SHCLOG_OTRACE2_SETT_IBFT` (`ORIGTRACE`),
-  UNIQUE KEY `uk_ibft_merge` (`PAN`,`ORIGTRACE`,`TERMID`,`LOCAL_DATE`,`LOCAL_TIME`,`ACQUIRER`)
+  
+  UNIQUE KEY `uk_ibft_merge` ('MSGTYPE',`PAN`,`ORIGTRACE`,`TERMID`,`LOCAL_DATE`,`LOCAL_TIME`,`ACQUIRER`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 
@@ -923,6 +924,8 @@ CREATE TABLE TGTT_20 (
 
 
 
+
+
 CREATE OR REPLACE VIEW GET_LIQUIDITY_BANK AS
 SELECT DISTINCT column_value
 FROM (
@@ -1069,3 +1072,111 @@ WHERE
     AND `B`.`MTI` = _UTF8MB4'0200'
     AND `B`.`BEN_ID` REGEXP _UTF8MB4'^[0-9]+$'
     AND `B`.`TRACE_NO` REGEXP _UTF8MB4'^[0-9]+$';
+	
+	
+	
+	
+	
+	CREATE OR REPLACE VIEW v_isomessage_tmp_turn_cast AS
+SELECT
+  t.*,
+  /* ép kiểu an toàn */
+  CASE WHEN t.PROC_CODE REGEXP '^[0-9]+$'
+       THEN CAST(t.PROC_CODE AS DECIMAL(18,6)) ELSE 0 END                                   AS PROC_CODE_DEC,
+  CASE WHEN t.TRACE_NO  REGEXP '^[0-9]+$'
+       THEN CAST(t.TRACE_NO  AS UNSIGNED)      ELSE NULL END                                 AS TRACE_NO_U,
+  CASE WHEN t.LOCAL_TIME REGEXP '^[0-9]+$'
+       THEN CAST(t.LOCAL_TIME AS DECIMAL(18,6)) ELSE NULL END                                AS LOCAL_TIME_DEC,
+  CASE WHEN t.MCC REGEXP '^[0-9]+$'
+       THEN CAST(t.MCC AS DECIMAL(18,6)) ELSE NULL END                                       AS MCC_DEC,
+
+  /* LOCAL_DATE/SETTLE_DATE: 'YYYYMMDD' hoặc 'MMDD' -> DATE; mặc định CURDATE() */
+  CASE
+    WHEN t.LOCAL_DATE  REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(t.LOCAL_DATE,'%Y%m%d')
+    WHEN t.LOCAL_DATE  REGEXP '^[0-9]{4}$' THEN STR_TO_DATE(CONCAT(YEAR(CURDATE()), t.LOCAL_DATE),'%Y%m%d')
+    ELSE CURDATE()
+  END                                                                                       AS LOCAL_DATE_D,
+  CASE
+    WHEN t.SETTLE_DATE REGEXP '^[0-9]{8}$' THEN STR_TO_DATE(t.SETTLE_DATE,'%Y%m%d')
+    WHEN t.SETTLE_DATE REGEXP '^[0-9]{4}$' THEN STR_TO_DATE(CONCAT(YEAR(CURDATE()), t.SETTLE_DATE),'%Y%m%d')
+    ELSE CURDATE()
+  END                                                                                       AS SETTLE_DATE_D,
+
+  /* số tiền/F4/F5/F6: bỏ 2 số lẻ cuối */
+  CASE WHEN t.AMOUNT IS NULL THEN 0 ELSE TRUNCATE(t.AMOUNT/100, 0) END                      AS AMOUNT_DIV100,
+  CASE WHEN t.F4     IS NULL THEN 0 ELSE TRUNCATE(t.F4    /100, 0) END                      AS F4_D,
+  CASE WHEN t.F5     IS NULL THEN 0 ELSE TRUNCATE(t.F5    /100, 0) END                      AS F5_D,
+  CASE WHEN t.F6     IS NULL THEN 0 ELSE TRUNCATE(t.F6    /100, 0) END                      AS F6_D,
+
+  CAST(t.ACQ_ID AS DECIMAL(18,6))                                                           AS ACQ_RAW,
+  CASE WHEN t.ACQ_ID REGEXP '^[0-9]+$'
+       THEN CAST(t.ACQ_ID AS UNSIGNED) ELSE NULL END                                         AS ACQ_INT, -- dùng cho ORIGISS
+  CASE WHEN t.TRACE_NO REGEXP '^[0-9]+$'
+       THEN CAST(CONCAT('2', t.TRACE_NO) AS DECIMAL(18,6)) ELSE NULL END                     AS TRACE_CONCAT2,
+  CASE WHEN t.TRACE_NO REGEXP '^[0-9]+$'
+       THEN CAST(t.TRACE_NO AS DECIMAL(18,6)) ELSE NULL END                                  AS ORIGTRACE_DEC,
+
+  /* RESPCODE seed */
+  CASE
+    WHEN t.BEN_ID = '971133' AND (t.DEST_ACCOUNT LIKE 'NPDC%' OR t.DEST_ACCOUNT LIKE 'NQ%') THEN 68
+    WHEN t.SERVICE_CODE = 'QR_PUSH' THEN 68
+    WHEN t.BEN_ID = '971100' AND t.TCC = '99' THEN 68
+    WHEN TRIM(t.ISS_ID) IN ('980471','980472') THEN 68
+    ELSE 0
+  END                                                                                       AS RESPCODE_SEED,
+
+  /* PCODE2 */
+  CASE
+    WHEN t.TCC='99' THEN 930000
+    WHEN t.TCC='95' THEN 950000
+    WHEN t.SERVICE_CODE='QR_PUSH' THEN 890000
+    WHEN t.TCC='97' THEN 720000
+    WHEN t.TCC='98' THEN 730000
+    ELSE 910000
+  END                                                                                       AS PCODE2_VAL,
+
+  /* *_FE/RP */
+  CASE WHEN CAST(t.ACQ_ID AS UNSIGNED)=191919 THEN 970459
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=970415 THEN 970489
+       ELSE CAST(t.ACQ_ID AS UNSIGNED) END                                                  AS ACQ_FE,
+  CASE WHEN TRIM(t.ISS_ID)='980471' THEN 980471
+       WHEN TRIM(t.ISS_ID)='980475' THEN 980478
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=191919 THEN 970459
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=970415 THEN 970489
+       ELSE CAST(t.ACQ_ID AS UNSIGNED) END                                                  AS ACQ_RP,
+  CASE WHEN CAST(t.ACQ_ID AS UNSIGNED)=191919 THEN 970459
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=970415 THEN 970489
+       ELSE CAST(t.ACQ_ID AS UNSIGNED) END                                                  AS ISS_FE,
+  CASE WHEN TRIM(t.ISS_ID)='980471' THEN 980471
+       WHEN TRIM(t.ISS_ID)='980475' THEN 980478
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=191919 THEN 970459
+       WHEN CAST(t.ACQ_ID AS UNSIGNED)=970415 THEN 970489
+       ELSE CAST(t.ACQ_ID AS UNSIGNED) END                                                  AS ISS_RP,
+
+  /* BB_BIN & ORIG */
+  CASE
+    WHEN TRIM(t.ISS_ID)='980472' THEN 980471
+    WHEN TRIM(t.ISS_ID)='980474' THEN 980478
+    WHEN t.BEN_ID IS NOT NULL AND t.PROC_CODE IN ('912020','910020')
+      THEN CAST(t.BEN_ID AS UNSIGNED)
+    ELSE CAST(SUBSTRING(t.DEST_ACCOUNT,1,6) AS UNSIGNED)
+  END                                                                                       AS BB_BIN_VAL,
+  CASE
+    WHEN TRIM(t.ISS_ID) IN ('980472','980474','980475') THEN
+      CASE
+        WHEN t.BEN_ID IS NOT NULL AND t.PROC_CODE IN ('912020','910020')
+          THEN CAST(t.BEN_ID AS UNSIGNED)
+        ELSE CAST(SUBSTRING(t.DEST_ACCOUNT,1,6) AS UNSIGNED)
+      END
+    ELSE
+      CASE WHEN t.BEN_ID REGEXP '^[0-9]+$' THEN CAST(t.BEN_ID AS UNSIGNED) ELSE NULL END
+  END                                                                                       AS BB_BIN_ORIG_VAL,
+
+  /* INS_PCODE */
+  CASE WHEN t.OF_YEAR REGEXP '^[0-9]{2,}$'
+       THEN CAST(SUBSTRING(t.OF_YEAR,1,2) AS DECIMAL(18,6)) ELSE 0 END                       AS INS_PCODE_DEC
+
+FROM ISOMESSAGE_TMP_TURN t
+WHERE t.MTI='0210'  /* đúng thủ tục gốc */
+  AND COALESCE(t.BEN_ID,'0') REGEXP '^[0-9]+$'
+  AND t.TRACE_NO REGEXP '^[0-9]+$';
