@@ -91,7 +91,7 @@ public class Test {
 //		5
 		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
 		// 6
-//		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
+		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
 //		LocalDate localDatenow = LocalDate.now();
 //		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 8
@@ -100,7 +100,7 @@ public class Test {
 		// 9.
 		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
 		// 10.
-//		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
+		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
 //		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);

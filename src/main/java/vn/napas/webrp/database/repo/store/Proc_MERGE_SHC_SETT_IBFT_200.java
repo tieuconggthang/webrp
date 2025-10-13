@@ -593,13 +593,13 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 	// step 3.1 – UPDATE (match theo đúng điều kiện MERGE gốc)
 	private static final String SQL_STEP3_1_UPDATE = """
 			UPDATE SHCLOG_SETT_IBFT A
-			JOIN V_ISOMESSAGE_TMP_TURN_0200 B
-			  ON  A.PAN        = B.card_no_trim
-			  AND A.ORIGTRACE  = B.trace_no_num
-			  AND A.TERMID     = B.term_id
-			  AND DATE_FORMAT(A.LOCAL_DATE, '%m%d') = B.local_mmdd
-			  AND A.LOCAL_TIME = B.local_time_num
-			  AND A.ACQUIRER   = B.acq_id_num
+			JOIN v_isomessage_tmp_turn_200 B
+			  ON  A.PAN        = B.CARD_NO
+			  AND A.ORIGTRACE  = B.TRACE_NO_U
+			  AND A.TERMID     = B.TERM_ID
+			  AND DATE_FORMAT(A.LOCAL_DATE, '%m%d') = B.LOCAL_DATE_D
+			  AND A.LOCAL_TIME = B.LOCAL_TIME_DEC
+			  AND A.ACQUIRER   = B.ACQ_INT
 			SET
 			  A.RESPCODE = CASE
 			                 WHEN A.AMOUNT <> ROUND(B.amount_raw_num/100, 0) AND A.RESPCODE = 0
@@ -615,180 +615,89 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 	// step 3.2 – INSERT (NOT EXISTS) + dedup nguồn (1 dòng/khóa, ưu tiên TNX_STAMP
 	// mới nhất)
 	private static final String SQL_STEP3_2INSERT_NOT_EXISTS = """
-			INSERT INTO SHCLOG_SETT_IBFT (
-			  PAN, ORIGTRACE, TERMID, LOCAL_DATE, LOCAL_TIME, ACQUIRER,
-			  DATA_ID, PPCODE, MSGTYPE, PCODE, AMOUNT, ACQ_CURRENCY_CODE, TRACE,
-			  SETTLEMENT_DATE, ISSUER, RESPCODE, MERCHANT_TYPE, MERCHANT_TYPE_ORIG, AUTHNUM,
-			  SETT_CURRENCY_CODE, ADD_INFO, ACCTNUM, ISS_CURRENCY_CODE, ORIGISS,
-			  ORIGRESPCODE, CH_CURRENCY_CODE, ACQUIRER_FE, ACQUIRER_RP, ISSUER_FE, ISSUER_RP,
-			  PCODE2, FROM_SYS, BB_BIN, BB_BIN_ORIG, CONTENT_FUND, TXNSRC, ACQ_COUNTRY,
-			  POS_ENTRY_CODE, POS_CONDITION_CODE, ADDRESPONSE, MVV, F4, F5, F6, F49,
-			  SETTLEMENT_CODE, SETTLEMENT_RATE, ISS_CONV_RATE, TCC,
-			  refnum, trandate, trantime, ACCEPTORNAME, TERMLOC, F15, pcode_orig,
-			  ACCOUNT_NO, DEST_ACCOUNT
-			)
-			WITH base AS (
-			  /* dedup nguồn: 1 dòng/khóa, ưu tiên TNX_STAMP mới nhất */
-			  SELECT *
-			  FROM (
-			    SELECT
-			      card_no_trim, trace_no_num, term_id, local_mmdd, local_time_num, acq_id_num,
-			      MTI, BEN_ID, SERVICE_CODE, ISS_ID, PROC_CODE, IBFT_INFO,
-			      ACQ_COUNTRY, POS_ENTRY_CODE, POS_CONDITION_CODE, ADDRESPONSE, MVV,
-			      F4, F5, F6, F49,
-			      SETTLEMENT_CODE, SETTLEMENT_RATE, ISS_CONV_RATE, TCC,
-			      REF_NO, TNX_STAMP, CARD_ACCEPT_NAME_LOCATION, CARD_ACCEPT_ID_CODE,
-			      SETTLE_DATE, ACCOUNT_NO, DEST_ACCOUNT, MCC, APPROVAL_CODE, ADD_INFO,
-			      amount_ins_num, f4_num, f5_num, f6_num, trace2_num,
-			      ROW_NUMBER() OVER (
-			        PARTITION BY card_no_trim, trace_no_num, term_id, local_mmdd, local_time_num, acq_id_num
-			        ORDER BY TNX_STAMP DESC
-			      ) rn
-			    FROM V_ISOMESSAGE_TMP_TURN_0200
-			  ) t
-			  WHERE t.rn = 1
-			),
-			src AS (
-			  SELECT b.*,
-			         /* Thay MAP_IBFT_ACQ_ID(acq_id_num) bằng CASE cố định */
-			         CASE CAST(b.acq_id_num AS UNSIGNED)
-			           WHEN 970429 THEN 157979
-			           WHEN 970400 THEN 161087
-			           WHEN 970427 THEN 166888
-			           WHEN 970441 THEN 180906
-			           WHEN 970425 THEN 970459
-			           WHEN 970431 THEN 452999
-			           WHEN 970436 THEN 686868
-			           WHEN 970419 THEN 818188
-			           WHEN 970407 THEN 888899
-			           WHEN 970434 THEN 888999
-			           WHEN 970440 THEN 970468
-			           WHEN 970418 THEN 970488
-			           WHEN 970432 THEN 981957
-			           WHEN 970405 THEN 970499
-			           ELSE CAST(b.acq_id_num AS UNSIGNED)
-			         END AS mapped_acq_id
-			  FROM base b
+						INSERT INTO SHCLOG_SETT_IBFT (
+			  DATA_ID, PPCODE, STT, MSGTYPE, PAN, PCODE, AMOUNT, ACQ_CURRENCY_CODE, TRACE,
+			  LOCAL_TIME, LOCAL_DATE, SETTLEMENT_DATE, ACQUIRER, ISSUER, RESPCODE, MERCHANT_TYPE,
+			  MERCHANT_TYPE_ORIG, AUTHNUM, SETT_CURRENCY_CODE, TERMID, ADD_INFO, ACCTNUM,
+			  ISS_CURRENCY_CODE, ORIGTRACE, ORIGISS, ORIGRESPCODE, CH_CURRENCY_CODE,
+			  ACQUIRER_FE, ACQUIRER_RP, ISSUER_FE, ISSUER_RP, PCODE2, FROM_SYS, BB_BIN,
+			  BB_BIN_ORIG, CONTENT_FUND, TXNSRC, ACQ_COUNTRY, POS_ENTRY_CODE,
+			  POS_CONDITION_CODE, ADDRESPONSE, MVV, F4, F5, F6, F49, SETTLEMENT_CODE,
+			  SETTLEMENT_RATE, ISS_CONV_RATE, TCC, REFNUM, TRANDATE, TRANTIME, ACCEPTORNAME,
+			  TERMLOC, F15, PCODE_ORIG, ACCOUNT_NO, DEST_ACCOUNT, INS_PCODE
 			)
 			SELECT
-			  s.card_no_trim,
-			  s.trace_no_num,
-			  s.term_id,
-			  STR_TO_DATE(CONCAT(YEAR(CURDATE()), s.local_mmdd), '%Y%m%d'),
-			  s.local_time_num,
-			  s.acq_id_num,
+			  1                                          AS DATA_ID,
+			  v.PROC_CODE_DEC                            AS PPCODE,
+			  (? + ROW_NUMBER() OVER (ORDER BY v.TNX_STAMP, v.ORIGTRACE_DEC, v.CARD_NO)) AS STT,
+			  210                                        AS MSGTYPE,
+			  SUBSTRING(v.CARD_NO,1,19)                  AS PAN,
+			  v.PROC_CODE_DEC                            AS PCODE,
+			  v.AMOUNT_DIV100                            AS AMOUNT,
+			  704                                        AS ACQ_CURRENCY_CODE,
+			  v.TRACE_CONCAT2                            AS TRACE,
+			  v.LOCAL_TIME_DEC                           AS LOCAL_TIME,
+			  v.LOCAL_DATE_D                             AS LOCAL_DATE,
+			  v.SETTLE_DATE_D                            AS SETTLEMENT_DATE,
+			  v.ACQ_RAW                                  AS ACQUIRER,
+			  v.ACQ_RAW                                  AS ISSUER,
+			  v.RESPCODE_SEED                            AS RESPCODE,
+			  6011                                       AS MERCHANT_TYPE,
+			  v.MCC_DEC                                  AS MERCHANT_TYPE_ORIG,
+			  SUBSTRING(v.APPROVAL_CODE,1,6)             AS AUTHNUM,
+			  704                                        AS SETT_CURRENCY_CODE,
+			  SUBSTRING(v.TERM_ID,1,8)                   AS TERMID,
+			  v.ADD_INFO                                 AS ADD_INFO,
+			  SUBSTRING(CONCAT(COALESCE(v.ACCOUNT_NO,' '),'|',COALESCE(v.DEST_ACCOUNT,'')),1,70) AS ACCTNUM,
+			  704                                        AS ISS_CURRENCY_CODE,
+			  v.ORIGTRACE_DEC                            AS ORIGTRACE,
+			  v.ACQ_INT                                  AS ORIGISS,  -- nếu cột đích là CHAR(10) thì dùng LPAD(v.ACQ_INT,10,'0')
+			  97                                         AS ORIGRESPCODE,
+			  704                                        AS CH_CURRENCY_CODE,
+			  v.ACQ_FE, v.ACQ_RP, v.ISS_FE, v.ISS_RP,
+			  v.PCODE2_VAL, 'IBT',
+			  v.BB_BIN_VAL, v.BB_BIN_ORIG_VAL,
+			  v.IBFT_INFO                                AS CONTENT_FUND,
+			  'MTI=200'                                  AS TXNSRC,
+			  v.ACQ_COUNTRY, v.POS_ENTRY_CODE, v.POS_CONDITION_CODE,
+			  v.ADDRESPONSE, v.MVV,
+			  v.F4_D, v.F5_D, v.F6_D,
+			  v.F49, v.SETTLEMENT_CODE, v.SETTLEMENT_RATE, v.ISS_CONV_RATE, v.TCC,
+			  SUBSTRING(v.REF_NO,1,12)                   AS REFNUM,
+			  DATE(v.TNX_STAMP)                          AS TRANDATE,
+			  DATE_FORMAT(v.TNX_STAMP,'%H%i%s')          AS TRANTIME,  -- nếu cột đích là số: CAST(... AS UNSIGNED)
+			  SUBSTRING(v.CARD_ACCEPT_NAME_LOCATION,1,40) AS ACCEPTORNAME,
+			  SUBSTRING(v.CARD_ACCEPT_ID_CODE,1,25)       AS TERMLOC,
+			  v.SETTLE_DATE_D                            AS F15,
+			  v.PROC_CODE_DEC                            AS PCODE_ORIG,
+			  v.ACCOUNT_NO, v.DEST_ACCOUNT,
+			  v.INS_PCODE_DEC                            AS INS_PCODE
+			FROM test.v_isomessage_tmp_turn_full v
+			WHERE
+			  v.CARD_NO IS NOT NULL
+			  AND v.MTI = '0200'
+			  /* BEN_ID: casting-based để mô phỏng is_number(decode(BEN_ID,NULL,'0',BEN_ID)) <> 0 */
+			  AND COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0')
+			      = LPAD(
+			          CAST(COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0') AS UNSIGNED),
+			          CHAR_LENGTH(COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0')),
+			          '0'
+			        )
+			  /* TRACE_NO: dùng cột đã chuẩn hoá trong view */
+			  AND v.TRACE_NO_U IS NOT NULL
+			  /* Chống chèn trùng – thay điều kiện ON của MERGE */
+			  AND NOT EXISTS (
+			    SELECT 1
+			    FROM SHCLOG_SETT_IBFT a
+			    WHERE TRIM(a.PAN) = SUBSTRING(v.CARD_NO,1,19)
+			      AND a.ORIGTRACE = v.ORIGTRACE_DEC
+			      AND a.TERMID    = SUBSTRING(v.TERM_ID,1,8)
+			      AND DATE_FORMAT(a.LOCAL_DATE,'%m%d') = DATE_FORMAT(v.LOCAL_DATE_D,'%m%d')
+			      AND a.LOCAL_TIME = v.LOCAL_TIME_DEC
+			      AND a.ACQUIRER   = v.ACQ_RAW
+			  );
 
-			  1,
-			  CAST(s.PROC_CODE AS UNSIGNED),
-			  '210',
-			  CAST(s.PROC_CODE AS UNSIGNED),
-			  s.amount_ins_num,
-			  704,
-			  s.trace2_num,
-
-			  STR_TO_DATE(CONCAT(YEAR(CURDATE()), LPAD(s.SETTLE_DATE,4,'0')), '%Y%m%d'),
-			  s.acq_id_num,
-			  CASE
-			    WHEN s.BEN_ID = '971133' AND s.DEST_ACCOUNT LIKE 'NPDC%' THEN 68
-			    WHEN s.SERVICE_CODE = 'QR_PUSH' THEN 68
-			    WHEN s.BEN_ID = '971100' AND s.TCC = '99' THEN 68
-			    WHEN TRIM(s.ISS_ID) IN ('980471','980472') THEN 68
-			    ELSE 0
-			  END,
-			  6011,
-			  CAST(s.MCC AS UNSIGNED),
-			  s.APPROVAL_CODE,
-			  704,
-			  s.ADD_INFO,
-			  CONCAT(IFNULL(s.ACCOUNT_NO,' '), '|', IFNULL(s.DEST_ACCOUNT,'')),
-			  704,
-
-			  /* ORIGISS: ưu tiên các ngoại lệ, sau đó dùng mapped_acq_id (thay MAP_IBFT_ACQ_ID) */
-			  CASE
-			    WHEN TRIM(s.ISS_ID) = '980471' THEN 980471
-			    WHEN TRIM(s.ISS_ID) = '980475' THEN 980478
-			    WHEN s.acq_id_num = 191919 THEN 970459
-			    WHEN s.acq_id_num = 970415 THEN 970489
-			    ELSE s.mapped_acq_id
-			  END,
-
-			  '97',
-			  704,
-			  NULL, NULL, NULL, NULL,
-
-			  /* BB_BIN_ORIG: ngoại lệ rồi đến mapped_acq_id */
-			  CASE
-			    WHEN s.acq_id_num = 191919 THEN 970459
-			    WHEN s.acq_id_num = 970415 THEN 970489
-			    ELSE s.mapped_acq_id
-			  END,
-
-			  'IBT',
-
-			  /* === Vị trí #1: GET_IBT_BIN(...) → JOIN + CASE theo BEN_ID/DEST_ACCOUNT === */
-			  CASE
-			    WHEN TRIM(s.ISS_ID) = '980472' THEN 980471
-			    WHEN TRIM(s.ISS_ID) = '980474' THEN 980478
-			    WHEN s.BEN_ID IS NOT NULL AND s.PROC_CODE IN ('912020','910020')
-			      THEN CASE
-			             WHEN CAST(i_ben.MEMBER_ID  AS UNSIGNED) = 191919 THEN 970459
-			             WHEN CAST(i_ben.MEMBER_ID  AS UNSIGNED) = 970415 THEN 970489
-			             ELSE CAST(i_ben.MEMBER_ID  AS UNSIGNED)
-			           END
-			    ELSE   CASE
-			             WHEN CAST(i_dest.MEMBER_ID AS UNSIGNED) = 191919 THEN 970459
-			             WHEN CAST(i_dest.MEMBER_ID AS UNSIGNED) = 970415 THEN 970489
-			             ELSE CAST(i_dest.MEMBER_ID AS UNSIGNED)
-			           END
-			  END,
-
-			  /* === Vị trí #2: TO_NUMBER_BNV(BEN_ID) (theo yêu cầu: dùng CAST TiDB) + fallback GET_IBT_BIN === */
-			  CASE
-			    WHEN s.BEN_ID IN (SELECT TGTT_ID FROM TGTT_20) THEN
-			      CAST(s.BEN_ID AS UNSIGNED)  -- thay TO_NUMBER_BNV(s.BEN_ID)
-			    WHEN TRIM(s.ISS_ID) IN ('980472','980474','980475') THEN
-			      CASE
-			        WHEN s.BEN_ID IS NOT NULL AND s.PROC_CODE IN ('912020','910020')
-			          THEN CASE
-			                 WHEN CAST(i_ben.MEMBER_ID  AS UNSIGNED) = 191919 THEN 970459
-			                 WHEN CAST(i_ben.MEMBER_ID  AS UNSIGNED) = 970415 THEN 970489
-			                 ELSE CAST(i_ben.MEMBER_ID  AS UNSIGNED)
-			               END
-			        ELSE   CASE
-			                 WHEN CAST(i_dest.MEMBER_ID AS UNSIGNED) = 191919 THEN 970459
-			                 WHEN CAST(i_dest.MEMBER_ID AS UNSIGNED) = 970415 THEN 970489
-			                 ELSE CAST(i_dest.MEMBER_ID AS UNSIGNED)
-			               END
-			      END
-			    ELSE
-			      CAST(s.BEN_ID AS UNSIGNED)  -- thay TO_NUMBER_BNV(s.BEN_ID)
-			  END,
-
-			  s.IBFT_INFO,
-			  'MTI=200',
-			  s.ACQ_COUNTRY, s.POS_ENTRY_CODE, s.POS_CONDITION_CODE, s.ADDRESPONSE, s.MVV,
-			  s.f4_num, s.f5_num, s.f6_num, s.F49,
-			  s.SETTLEMENT_CODE, s.SETTLEMENT_RATE, s.ISS_CONV_RATE, s.TCC,
-			  s.REF_NO, DATE(s.TNX_STAMP), DATE_FORMAT(s.TNX_STAMP, '%H%i%s'),
-			  s.CARD_ACCEPT_NAME_LOCATION, s.CARD_ACCEPT_ID_CODE,
-			  NULL, CAST(s.PROC_CODE AS UNSIGNED),
-			  s.ACCOUNT_NO, s.DEST_ACCOUNT
-			FROM src s
-			LEFT JOIN IBFT_BANK_BINS i_ben
-			       ON i_ben.BIN  = s.BEN_ID
-			LEFT JOIN IBFT_BANK_BINS i_dest
-			       ON i_dest.BIN = SUBSTRING(s.DEST_ACCOUNT,1,6)
-			WHERE NOT EXISTS (
-			  SELECT 1
-			  FROM SHCLOG_SETT_IBFT A
-			  WHERE A.PAN        = s.card_no_trim
-			    AND A.ORIGTRACE  = s.trace_no_num
-			    AND A.TERMID     = s.term_id
-			    AND DATE_FORMAT(A.LOCAL_DATE,'%m%d') = s.local_mmdd
-			    AND A.LOCAL_TIME = s.local_time_num
-			    AND A.ACQUIRER   = s.acq_id_num
-			);
-									""";
+												""";
 
 	private static final String SQL_STEP_4_FINÍH_MERGE = """
 			INSERT INTO ERR_EX(ERR_TIME, ERR_CODE, ERR_DETAIL, ERR_MODULE)
@@ -900,10 +809,10 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 		int iSTT = step2getMaxSTT();
 //        step0Prepare();
 		p.addValue("iSTT", iSTT);
-//		step31Update();
-//		step32Insert();
+		step31Update();
+		step32Insert();
 //        step3UpdateStt();
-		exec(MODULE, SQL_STEP_3, p);
+//		exec(MODULE, SQL_STEP_3, p);
 		// step 4
 		exec(MODULE, SQL_STEP_4_FINÍH_MERGE, p);
 		// step 5 Update SHCLOG_SETT_IBFT

@@ -346,11 +346,11 @@ public class Proc_GET_ISOMESSAGE_TMP_TURN {
 				      /* INS_PCODE */
 				      CASE WHEN t.OF_YEAR REGEXP '^[0-9]{2,}$'
 				           THEN CAST(SUBSTRING(t.OF_YEAR,1,2) AS DECIMAL(18,6)) ELSE 0 END AS INS_PCODE_DEC
-				    FROM ISOMESSAGE_TMP_TURN t
+				    FROM v_isomessage_tmp_turn_full t
 				    WHERE t.MTI='0210'              /* đúng thủ tục gốc */
 				      AND t.CARD_NO IS NOT NULL
-					  AND COALESCE(TRIM(t.BEN_ID), '')  REGEXP '^[0-9]+$' AND CAST(t.BEN_ID  AS UNSIGNED) > 0
-				      AND COALESCE(TRIM(t.TRACE_NO), '') REGEXP '^[0-9]+$' AND CAST(t.TRACE_NO AS UNSIGNED) > 0
+					  AND t.BEN_ID_U IS NOT NULL
+				      AND t.TRACE_NO_U IS NOT NULL
 				  ) s
 				) r
 				""";

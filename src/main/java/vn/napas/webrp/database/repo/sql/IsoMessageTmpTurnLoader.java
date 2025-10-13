@@ -247,7 +247,7 @@ public class IsoMessageTmpTurnLoader {
 					  AND SUBSTRING(proc_code,1,2) IN (:procPrefixes)
 					  AND MTI IN (:mtis)
 					  AND ACQ_ID <> :acqExclude
-					  AND (ISS_ID IS NULL OR ISS_ID IN (:issList))
+					  AND ((ISS_ID IS NULL) OR (ISS_ID IN (:issList) ))
 					""";
 
 			// chèn đoạn proc_code LIKE động
