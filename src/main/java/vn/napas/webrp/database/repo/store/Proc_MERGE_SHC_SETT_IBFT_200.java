@@ -592,31 +592,34 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 												""";
 	// step 3.1 – UPDATE (match theo đúng điều kiện MERGE gốc)
 	private static final String SQL_STEP3_1_UPDATE = """
-			UPDATE SHCLOG_SETT_IBFT A
-			JOIN v_isomessage_tmp_turn_200 B
-			  ON  A.PAN        = B.CARD_NO
-			  AND A.ORIGTRACE  = B.TRACE_NO_U
-			  AND A.TERMID     = B.TERM_ID
-			  AND DATE_FORMAT(A.LOCAL_DATE, '%m%d') = B.LOCAL_DATE_D
-			  AND A.LOCAL_TIME = B.LOCAL_TIME_DEC
-			  AND A.ACQUIRER   = B.ACQ_INT
-			SET
-			  A.RESPCODE = CASE
-			                 WHEN A.AMOUNT <> ROUND(B.amount_raw_num/100, 0) AND A.RESPCODE = 0
-			                 THEN 116 ELSE A.RESPCODE
-			               END,
-			  A.TXNSRC   = CASE
-			                 WHEN A.AMOUNT <> ROUND(B.amount_raw_num/100, 0)
-			                 THEN 'RC=99' ELSE A.TXNSRC
-			               END,
-			  A.CONTENT_FUND = B.IBFT_INFO
-			""";
+			/* step 3.1 — UPDATE theo khóa khớp MERGE gốc */
+						UPDATE SHCLOG_SETT_IBFT A
+						JOIN v_isomessage_tmp_turn_200 V
+						  ON TRIM(A.PAN)         = V.CARD_NO
+						 AND A.ORIGTRACE         = V.TRACE_NO_U
+						 AND A.TERMID            = V.TERM_ID
+						 AND DATE(A.LOCAL_DATE)  = V.LOCAL_DATE_D
+						 AND A.LOCAL_TIME        = V.LOCAL_TIME_DEC
+						 AND A.ACQUIRER          = V.ACQ_INT
+						SET
+						  A.RESPCODE = CASE
+						                 /* MERGE gốc so sánh ROUND(amount/100,0) */
+						                 WHEN A.AMOUNT <> ROUND(V.AMOUNT/100, 0) AND A.RESPCODE = 0 THEN 116
+						                 ELSE A.RESPCODE
+						               END,
+						  A.TXNSRC   = CASE
+						                 WHEN A.AMOUNT <> ROUND(V.AMOUNT/100, 0) THEN 'RC=99'
+						                 ELSE A.TXNSRC
+						               END,
+						  A.CONTENT_FUND = V.IBFT_INFO;
+
+						""";
 
 	// step 3.2 – INSERT (NOT EXISTS) + dedup nguồn (1 dòng/khóa, ưu tiên TNX_STAMP
 	// mới nhất)
 	private static final String SQL_STEP3_2INSERT_NOT_EXISTS = """
-						INSERT INTO SHCLOG_SETT_IBFT (
-			  DATA_ID, PPCODE, STT, MSGTYPE, PAN, PCODE, AMOUNT, ACQ_CURRENCY_CODE, TRACE,
+			INSERT INTO SHCLOG_SETT_IBFT (
+			  DATA_ID, PPCODE, MSGTYPE, PAN, PCODE, AMOUNT, ACQ_CURRENCY_CODE, TRACE,
 			  LOCAL_TIME, LOCAL_DATE, SETTLEMENT_DATE, ACQUIRER, ISSUER, RESPCODE, MERCHANT_TYPE,
 			  MERCHANT_TYPE_ORIG, AUTHNUM, SETT_CURRENCY_CODE, TERMID, ADD_INFO, ACCTNUM,
 			  ISS_CURRENCY_CODE, ORIGTRACE, ORIGISS, ORIGRESPCODE, CH_CURRENCY_CODE,
@@ -627,75 +630,61 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 			  TERMLOC, F15, PCODE_ORIG, ACCOUNT_NO, DEST_ACCOUNT, INS_PCODE
 			)
 			SELECT
-			  1                                          AS DATA_ID,
-			  v.PROC_CODE_DEC                            AS PPCODE,
-			  (? + ROW_NUMBER() OVER (ORDER BY v.TNX_STAMP, v.ORIGTRACE_DEC, v.CARD_NO)) AS STT,
-			  210                                        AS MSGTYPE,
-			  SUBSTRING(v.CARD_NO,1,19)                  AS PAN,
-			  v.PROC_CODE_DEC                            AS PCODE,
-			  v.AMOUNT_DIV100                            AS AMOUNT,
-			  704                                        AS ACQ_CURRENCY_CODE,
-			  v.TRACE_CONCAT2                            AS TRACE,
-			  v.LOCAL_TIME_DEC                           AS LOCAL_TIME,
-			  v.LOCAL_DATE_D                             AS LOCAL_DATE,
-			  v.SETTLE_DATE_D                            AS SETTLEMENT_DATE,
-			  v.ACQ_RAW                                  AS ACQUIRER,
-			  v.ACQ_RAW                                  AS ISSUER,
-			  v.RESPCODE_SEED                            AS RESPCODE,
-			  6011                                       AS MERCHANT_TYPE,
-			  v.MCC_DEC                                  AS MERCHANT_TYPE_ORIG,
-			  SUBSTRING(v.APPROVAL_CODE,1,6)             AS AUTHNUM,
-			  704                                        AS SETT_CURRENCY_CODE,
-			  SUBSTRING(v.TERM_ID,1,8)                   AS TERMID,
-			  v.ADD_INFO                                 AS ADD_INFO,
-			  SUBSTRING(CONCAT(COALESCE(v.ACCOUNT_NO,' '),'|',COALESCE(v.DEST_ACCOUNT,'')),1,70) AS ACCTNUM,
-			  704                                        AS ISS_CURRENCY_CODE,
-			  v.ORIGTRACE_DEC                            AS ORIGTRACE,
-			  v.ACQ_INT                                  AS ORIGISS,  -- nếu cột đích là CHAR(10) thì dùng LPAD(v.ACQ_INT,10,'0')
-			  97                                         AS ORIGRESPCODE,
-			  704                                        AS CH_CURRENCY_CODE,
-			  v.ACQ_FE, v.ACQ_RP, v.ISS_FE, v.ISS_RP,
-			  v.PCODE2_VAL, 'IBT',
-			  v.BB_BIN_VAL, v.BB_BIN_ORIG_VAL,
-			  v.IBFT_INFO                                AS CONTENT_FUND,
-			  'MTI=200'                                  AS TXNSRC,
-			  v.ACQ_COUNTRY, v.POS_ENTRY_CODE, v.POS_CONDITION_CODE,
-			  v.ADDRESPONSE, v.MVV,
-			  v.F4_D, v.F5_D, v.F6_D,
-			  v.F49, v.SETTLEMENT_CODE, v.SETTLEMENT_RATE, v.ISS_CONV_RATE, v.TCC,
-			  SUBSTRING(v.REF_NO,1,12)                   AS REFNUM,
-			  DATE(v.TNX_STAMP)                          AS TRANDATE,
-			  DATE_FORMAT(v.TNX_STAMP,'%H%i%s')          AS TRANTIME,  -- nếu cột đích là số: CAST(... AS UNSIGNED)
-			  SUBSTRING(v.CARD_ACCEPT_NAME_LOCATION,1,40) AS ACCEPTORNAME,
-			  SUBSTRING(v.CARD_ACCEPT_ID_CODE,1,25)       AS TERMLOC,
-			  v.SETTLE_DATE_D                            AS F15,
-			  v.PROC_CODE_DEC                            AS PCODE_ORIG,
-			  v.ACCOUNT_NO, v.DEST_ACCOUNT,
-			  v.INS_PCODE_DEC                            AS INS_PCODE
-			FROM test.v_isomessage_tmp_turn_full v
-			WHERE
-			  v.CARD_NO IS NOT NULL
-			  AND v.MTI = '0200'
-			  /* BEN_ID: casting-based để mô phỏng is_number(decode(BEN_ID,NULL,'0',BEN_ID)) <> 0 */
-			  AND COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0')
-			      = LPAD(
-			          CAST(COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0') AS UNSIGNED),
-			          CHAR_LENGTH(COALESCE(NULLIF(TRIM(v.BEN_ID), ''), '0')),
-			          '0'
-			        )
-			  /* TRACE_NO: dùng cột đã chuẩn hoá trong view */
-			  AND v.TRACE_NO_U IS NOT NULL
-			  /* Chống chèn trùng – thay điều kiện ON của MERGE */
-			  AND NOT EXISTS (
-			    SELECT 1
-			    FROM SHCLOG_SETT_IBFT a
-			    WHERE TRIM(a.PAN) = SUBSTRING(v.CARD_NO,1,19)
-			      AND a.ORIGTRACE = v.ORIGTRACE_DEC
-			      AND a.TERMID    = SUBSTRING(v.TERM_ID,1,8)
-			      AND DATE_FORMAT(a.LOCAL_DATE,'%m%d') = DATE_FORMAT(v.LOCAL_DATE_D,'%m%d')
-			      AND a.LOCAL_TIME = v.LOCAL_TIME_DEC
-			      AND a.ACQUIRER   = v.ACQ_RAW
-			  );
+			  1                                AS DATA_ID,
+			  V.PROC_CODE_DEC                  AS PPCODE,
+			  '210'                              AS MSGTYPE,
+			  SUBSTRING(V.CARD_NO,1,19)        AS PAN,
+			  V.PROC_CODE_DEC                  AS PCODE,
+			  V.AMOUNT_DIV100                  AS AMOUNT,
+			  704                              AS ACQ_CURRENCY_CODE,
+			  V.TRACE_CONCAT2                  AS TRACE,
+			  V.LOCAL_TIME_DEC                 AS LOCAL_TIME,
+			  V.LOCAL_DATE_D                   AS LOCAL_DATE,
+			  V.SETTLE_DATE_D                  AS SETTLEMENT_DATE,
+			  V.ACQ_INT                        AS ACQUIRER,
+			  V.ACQ_INT                        AS ISSUER,
+			  V.RESPCODE_SEED                  AS RESPCODE,
+			  6011                             AS MERCHANT_TYPE,
+			  V.MCC_DEC                        AS MERCHANT_TYPE_ORIG,
+			  SUBSTRING(V.APPROVAL_CODE,1,6)   AS AUTHNUM,
+			  704                              AS SETT_CURRENCY_CODE,
+			  SUBSTRING(V.TERM_ID,1,8)         AS TERMID,
+			  V.ADD_INFO                       AS ADD_INFO,
+			  SUBSTRING(CONCAT(COALESCE(V.ACCOUNT_NO,' '),'|',COALESCE(V.DEST_ACCOUNT,'')),1,70) AS ACCTNUM,
+			  704                              AS ISS_CURRENCY_CODE,
+			  V.ORIGTRACE_DEC                  AS ORIGTRACE,
+			  CAST(V.ACQ_INT AS CHAR(10))      AS ORIGISS,
+			  97                               AS ORIGRESPCODE,
+			  704                              AS CH_CURRENCY_CODE,
+			  V.ACQ_FE, V.ACQ_RP, V.ISS_FE, V.ISS_RP,
+			  V.PCODE2_VAL, 'IBT',
+			  V.BB_BIN_VAL, V.BB_BIN_ORIG_VAL,
+			  V.IBFT_INFO                      AS CONTENT_FUND,
+			  'MTI=200'                        AS TXNSRC,
+			  V.ACQ_COUNTRY, V.POS_ENTRY_CODE, V.POS_CONDITION_CODE,
+			  V.ADDRESPONSE, V.MVV,
+			  V.F4_D, V.F5_D, V.F6_D,
+			  V.F49, V.SETTLEMENT_CODE, V.SETTLEMENT_RATE, V.ISS_CONV_RATE, V.TCC,
+			  SUBSTRING(V.REF_NO,1,12)         AS REFNUM,
+			  DATE(V.TNX_STAMP)                AS TRANDATE,
+			  CAST(DATE_FORMAT(V.TNX_STAMP,'%H%i%s') AS UNSIGNED) AS TRANTIME,
+			  SUBSTRING(V.CARD_ACCEPT_NAME_LOCATION,1,40) AS ACCEPTORNAME,
+			  SUBSTRING(V.CARD_ACCEPT_ID_CODE,1,25)       AS TERMLOC,
+			  V.SETTLE_DATE_D                  AS F15,
+			  V.PROC_CODE_DEC                  AS PCODE_ORIG,
+			  V.ACCOUNT_NO, V.DEST_ACCOUNT,
+			  V.INS_PCODE_DEC                  AS INS_PCODE
+			FROM v_isomessage_tmp_turn_200 V
+			WHERE NOT EXISTS (
+			  SELECT 1
+			  FROM SHCLOG_SETT_IBFT A
+			  WHERE TRIM(A.PAN)         = V.CARD_NO
+			    AND A.ORIGTRACE         = V.TRACE_NO_U
+			    AND A.TERMID            = V.TERM_ID
+			    AND DATE(A.LOCAL_DATE)  = V.LOCAL_DATE_D
+			    AND A.LOCAL_TIME        = V.LOCAL_TIME_DEC
+			    AND A.ACQUIRER          = V.ACQ_INT
+			);
 
 												""";
 
@@ -775,17 +764,17 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 	public void step31Update() {
 		MapSqlParameterSource p = new MapSqlParameterSource();
 //        int rows = executeUpdate(SQL_STEP3_1_UPDATE);
-		exec(MODULE, SQL_STEP3_1_UPDATE, p);
-//        log("Step1 UPDATE affected: " + rows);
+		int rows = exec(MODULE, SQL_STEP3_1_UPDATE, p);
+		log("step31Update  affected: " + rows);
 //        return rows;
 	}
 
 	@Transactional
 	public void step32Insert() {
 		MapSqlParameterSource p = new MapSqlParameterSource();
-		exec(MODULE, SQL_STEP3_2INSERT_NOT_EXISTS, p);
+		int rows = exec(MODULE, SQL_STEP3_2INSERT_NOT_EXISTS, p);
 //        int rows = executeUpdate(SQL_STEP3_2INSERT_NOT_EXISTS);
-//        log("Step2 INSERT affected: " + rows);
+        log("step32Insert affected: " + rows);
 //        return rows;
 	}
 
@@ -809,7 +798,7 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 		int iSTT = step2getMaxSTT();
 //        step0Prepare();
 		p.addValue("iSTT", iSTT);
-		step31Update();
+//		step31Update();
 		step32Insert();
 //        step3UpdateStt();
 //		exec(MODULE, SQL_STEP_3, p);

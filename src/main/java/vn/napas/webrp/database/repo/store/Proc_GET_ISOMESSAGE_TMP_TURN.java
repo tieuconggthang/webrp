@@ -243,7 +243,11 @@ public class Proc_GET_ISOMESSAGE_TMP_TURN {
 				  704,                              -- ISS_CURRENCY_CODE
 				  r.ORIGTRACE_DEC,                  -- ORIGTRACE
 				  CAST(r.ACQ_INT AS CHAR(10)),      -- ORIGISS (char(10)) ← FIX tràn độ dài
-				  97,                               -- ORIGRESPCODE
+				  CASE
+				  WHEN ORIGRESPCODE IS NULL OR TRIM(ORIGRESPCODE) = '' THEN 97
+				  WHEN TRIM(ORIGRESPCODE) REGEXP '^[0-9]+$' THEN CAST(ORIGRESPCODE AS UNSIGNED)
+				  ELSE 97
+				  END AS ORIGRESPCODE,                               -- ORIGRESPCODE
 				  704,                              -- CH_CURRENCY_CODE
 				  r.ACQ_FE, r.ACQ_RP, r.ISS_FE, r.ISS_RP,
 				  r.PCODE2_VAL, 'IBT',
@@ -346,11 +350,16 @@ public class Proc_GET_ISOMESSAGE_TMP_TURN {
 				      /* INS_PCODE */
 				      CASE WHEN t.OF_YEAR REGEXP '^[0-9]{2,}$'
 				           THEN CAST(SUBSTRING(t.OF_YEAR,1,2) AS DECIMAL(18,6)) ELSE 0 END AS INS_PCODE_DEC
-				    FROM v_isomessage_tmp_turn_full t
+				    FROM ISOMESSAGE_TMP_TURN t
 				    WHERE t.MTI='0210'              /* đúng thủ tục gốc */
-				      AND t.CARD_NO IS NOT NULL
-					  AND t.BEN_ID_U IS NOT NULL
-				      AND t.TRACE_NO_U IS NOT NULL
+				     AND 
+				  /* BEN_ID: nếu null coi như '0', phải là chuỗi số và khác 0*/
+				  (
+					COALESCE(NULLIF(TRIM(BEN_ID), ''), '0') REGEXP '^[0-9]+$')
+				  AND
+				  /* TRACE_NO: phải là chuỗi số*/
+				  (COALESCE(NULLIF(TRIM(BEN_ID), ''), '0') REGEXP '^[0-9]+$')
+				
 				  ) s
 				) r
 				""";
