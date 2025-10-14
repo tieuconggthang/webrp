@@ -105,7 +105,7 @@ public class Test {
 //		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
 //		// 20.
-		checkBackEdnDouble();
+//		checkBackEdnDouble();
 //		// 21
 //		indexFee();
 //		// 22
@@ -130,7 +130,7 @@ public class Test {
 //		summaryFEE_KEY(localDateTest, 1);
 //		// 32 type name = new type();
 		// 33
-//		MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDateTest);
+		MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDateTest);
 		// 33
 //		NAPAS_CAL_FEE_LOCAL_IBFT(localDateTest);
 //		// 34
