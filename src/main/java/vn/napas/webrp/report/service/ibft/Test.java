@@ -102,7 +102,7 @@ public class Test {
 		// 10.
 //		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
-//		MERGE_SHC_SETT_IBFT_200();
+		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
 //		// 20.
 //		checkBackEdnDouble();
