@@ -2,8 +2,23 @@ package vn.napas.webrp.database.repo.store;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.napas.webrp.database.converter.IbftMapper;
+import vn.napas.webrp.database.entities.IsomessageTmpTurn;
+import vn.napas.webrp.database.entities.ShclogSettIbft;
+import vn.napas.webrp.database.repo.BatchRepo;
+import vn.napas.webrp.database.repo.IsomessageTmpTurnRepo;
+import vn.napas.webrp.database.repo.ShclogSettIbftRepo;
 import vn.napas.webrp.report.util.SqlLogUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.apache.tomcat.util.threads.VirtualThreadExecutor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -31,6 +46,12 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 	private final NamedParameterJdbcTemplate jdbc;
 	private final JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	IsomessageTmpTurnRepo isomessageTmpTurnRepo;
+	@Autowired
+	BatchRepo<ShclogSettIbft> batchShclogSettIbftRepo;
+	@Autowired
+	IbftMapper itIbftMapper;
 	/*
 	 * ========================= 1) CÁC CÂU LỆNH SQL DẠNG HẰNG
 	 * =========================
@@ -774,7 +795,16 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 		MapSqlParameterSource p = new MapSqlParameterSource();
 		int rows = exec(MODULE, SQL_STEP3_2INSERT_NOT_EXISTS, p);
 //        int rows = executeUpdate(SQL_STEP3_2INSERT_NOT_EXISTS);
-        log("step32Insert affected: " + rows);
+		log("step32Insert affected: " + rows);
+//        return rows;
+	}
+
+	public void step32InsertBatch() {
+//		MapSqlParameterSource p = new MapSqlParameterSource();
+//		int rows = exec(MODULE, SQL_STEP3_2INSERT_NOT_EXISTS, p);
+////        int rows = executeUpdate(SQL_STEP3_2INSERT_NOT_EXISTS);
+		processNotMatched(5000);
+		log("step32Insert affected");
 //        return rows;
 	}
 
@@ -790,7 +820,7 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 	}
 
 	/** Chạy toàn bộ pipeline theo thứ tự các bước */
-	@Transactional
+//	@Transactional
 	public void runAll() {
 		log("Begin pipeline");
 		MapSqlParameterSource p = new MapSqlParameterSource().addValue("module", MODULE);
@@ -799,7 +829,8 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 //        step0Prepare();
 		p.addValue("iSTT", iSTT);
 //		step31Update();
-		step32Insert();
+//		step32Insert();
+		step32InsertBatch();
 //        step3UpdateStt();
 //		exec(MODULE, SQL_STEP_3, p);
 		// step 4
@@ -822,5 +853,64 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 		int rows = jdbc.update(sql, p);
 		log.info("{}: {} row(s)", tag, rows);
 		return rows;
+	}
+
+	private int processNotMatched(int pageSize) {
+		try {
+			long cursor = 0L;
+			int total = 0;
+			List<Future<Integer>> futures = new ArrayList<>();
+			for (;;) {
+				var batch = isomessageTmpTurnRepo.fetchNotMatchedAfterId(cursor, pageSize); // hoặc
+																							// fetchNotMatchedAfterId
+				if (batch.isEmpty())
+					break;
+
+				// TODO: xử lý/insert sang SHCLOG_SETT_IBFT
+//				total += batch.size();
+//VirtualThreadExecutor.
+				try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+//				Executors.newVirtualThreadPerTaskExecutor()
+					executor.submit(() -> processPage(batch));
+					futures.add(executor.submit(() -> processPage(batch)));
+				}
+				cursor = batch.get(batch.size() - 1).getTidbId(); // hoặc lấy từ _tidb_rowid nếu bạn có field map
+
+			}
+			for (var f : futures) {
+				total += f.get(); // lấy kết quả, propagate exception
+				// hoặc: totalProcessed += f.get(30, TimeUnit.SECONDS); // có timeout
+			}
+			return total;
+		} catch (Exception e) {
+			log.error("Exception: {}", e);
+			return -1;
+		}
+	}
+
+	public int processPage(List<IsomessageTmpTurn> rows) {
+		// 1) SELECT theo range (keyset) – có thể bật TiFlash/MPP ở session nếu cần
+//    List<IsomessageTmpTurn> rows = isoRepo.fetchRange(spec.startExclusive(), spec.endInclusive());
+//    if (rows.isEmpty()) return new PageResult(0);
+
+		// 2) Convert sang entity đích
+//    List<shclog> batch = rows.stream()
+//        .map(mapper::toShclogSett) // dùng createShcLogSettIfgtFromIsomessageTmpTurn()
+//        .toList();
+//
+//    // 3) Batch insert: dùng BaseBatchRepository.insertBatch(batch)
+//    shcRepo.insertBatch(batch); // 1 flush/clear cho cả batch
+		ArrayList<ShclogSettIbft> listSchArrayList = new ArrayList<ShclogSettIbft>();
+		for (IsomessageTmpTurn ele : rows) {
+			ShclogSettIbft shclogSettIbft = itIbftMapper.createShcLogSettIfgtFromIsomessageTmpTurn(ele);
+			if (shclogSettIbft != null) {
+				listSchArrayList.add(shclogSettIbft);
+			}
+
+		}
+		if (listSchArrayList.size() > 0)
+			batchShclogSettIbftRepo.insertBatch(listSchArrayList);
+//    return new PageResult(batch.size());
+		return listSchArrayList.size();
 	}
 }

@@ -21,7 +21,7 @@ public class IbftBankBin implements Serializable {
 	private String bin;
 
 	@Column(name="CARD_ID")
-	private short cardId;
+	private Short cardId;
 
 	@Column(name="MEMBER_ID")
 	private String memberId;

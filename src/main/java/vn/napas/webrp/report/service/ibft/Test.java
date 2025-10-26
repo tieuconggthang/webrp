@@ -84,23 +84,23 @@ public class Test {
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void test() {
-//		testMainenance();
+		testMainenance();
 		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 4
-//		insertIsoMsgTurnfromIsoMSg(localDateTest);
+		insertIsoMsgTurnfromIsoMSg(localDateTest);
 //		5
-//		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
+		insertIsoMsgTurnfromV_APG10_TRANS(localDateTest);
 		// 6
-//		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
+		gatherTable(TableConstant.shemaName, TableConstant.ISOMESSAGE_TMP_TURN);
 //		LocalDate localDatenow = LocalDate.now();
 //		LocalDate localDateTest = LocalDate.of(2025, 9, 9);
 		// 8
-//		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
+		insertIsoMsgTurnfromISOMESSAGE_TMP_68_TO();
 
 		// 9.
-//		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
+		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
 		// 10.
-//		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
+		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
 //		// 12.
 		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);

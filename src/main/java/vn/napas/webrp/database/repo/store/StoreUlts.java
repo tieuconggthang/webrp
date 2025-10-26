@@ -98,7 +98,7 @@ public class StoreUlts {
 
 	}
 
-	public static Integer MAP_IBFT_ACQ_ID(String iF32, String ISS_ID, String ACQ_ID) {
+	public static Integer MAP_IBFT_ACQ_ID(String ACQ_ID, String ISS_ID) {
 		try {
 
 			log.info("Starting");
@@ -114,7 +114,7 @@ public class StoreUlts {
 			default -> null;
 			};
 			if (iRValue == null)
-				iRValue = MAP_IBFT_ACQ_ID(iF32);
+				iRValue = MAP_IBFT_ACQ_ID(ACQ_ID);
 			return iRValue;
 		} catch (Exception e) {
 			log.error("Exception " + e.getMessage(), e);

@@ -29,7 +29,8 @@ public class IbftBankBinService {
 			tmplistIbftBankBin.put(element.getBin(), element);
 		}
 		if (tmplistIbftBankBin.size() > 0) {
-			listIbftBankBin.clear();
+			if (listIbftBankBin != null)
+				listIbftBankBin.clear();
 			listIbftBankBin = tmplistIbftBankBin;
 		}
 	}

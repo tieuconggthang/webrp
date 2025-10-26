@@ -3,22 +3,34 @@ package vn.napas.webrp.database.converter;
 import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import vn.napas.webrp.database.repo.store.StoreUlts;
+import vn.napas.webrp.report.service.ibft.IbftBankBinService;
+import vn.napas.webrp.report.service.ibft.Tgtt20Service;
 
+//java.text.SimpleDateFormat
 /**
  * Bộ hàm chuyển đổi từng trường từ ISOMESSAGE_TMP_TURN sang giá trị để insert
  * SHCLOG_SETT_IBFT. Mỗi trường một hàm, không phụ thuộc framework (thuần Java).
  */
 @Component
-public  class IbftConverters {
-	@Autowired StoreUlts storeUlts;
+public class IbftConverters {
+//	@Autowired
+//	StoreUlts storeUlts;
+	@Autowired
+	IbftBankBinService ibftBankBinService;
+	@Autowired
+	Tgtt20Service tgtt20Service;
+
 	private IbftConverters() {
 	}
 
@@ -41,11 +53,11 @@ public  class IbftConverters {
 	// =========================== Common utils ==============================
 	private static final Pattern NUMERIC = Pattern.compile("^[0-9]+$");
 
-	public static boolean isNumeric(String s) {
+	public boolean isNumeric(String s) {
 		return s != null && NUMERIC.matcher(s.trim()).matches();
 	}
 
-	public static Long toLong(String s) {
+	public Long toLong(String s) {
 		if (!isNumeric(s))
 			return null;
 		try {
@@ -55,7 +67,17 @@ public  class IbftConverters {
 		}
 	}
 
-	public static Integer toInt(String s) {
+	public BigDecimal toBigDecimal(String s) {
+		if (!isNumeric(s))
+			return null;
+		try {
+			return new BigDecimal(Long.parseLong(s.trim()));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	public Integer toInt(String s) {
 		if (!isNumeric(s))
 			return null;
 		try {
@@ -65,11 +87,11 @@ public  class IbftConverters {
 		}
 	}
 
-	public static String nz(String s, String def) {
+	public String nz(String s, String def) {
 		return (s == null || s.isEmpty()) ? def : s;
 	}
 
-	public static String trim(String s) {
+	public String trim(String s) {
 		return s == null ? null : s.trim();
 	}
 
@@ -77,7 +99,7 @@ public  class IbftConverters {
 	 * Amount kiểu text có 2 chữ số thập phân ghép liền (vd "12345" -> 123.45).
 	 * Oracle dùng SUBSTR(..., len-2).
 	 */
-	public static BigDecimal amountFromTail2(String amountRaw) {
+	public BigDecimal amountFromTail2(String amountRaw) {
 		if (amountRaw == null || amountRaw.isEmpty())
 			return BigDecimal.ZERO;
 		String t = amountRaw.trim();
@@ -85,15 +107,14 @@ public  class IbftConverters {
 			return BigDecimal.ZERO;
 		if (t.length() <= 2) {
 			// "5" => 0.05
-			String withPad = String.format("%02d", Integer.parseInt(t));
-			return new BigDecimal(withPad).movePointLeft(2);
+			return BigDecimal.ZERO;
 		}
 		String head = t.substring(0, t.length() - 2);
 		return new BigDecimal(head);
 	}
 
 	/** F4/F5/F6 theo cùng công thức với Amount (loại 2 chữ số cuối). */
-	public static Long numericFromTail2(String raw) {
+	public Long numericFromTail2(String raw) {
 		if (raw == null || raw.isEmpty())
 			return 0L;
 		String t = raw.trim();
@@ -113,44 +134,24 @@ public  class IbftConverters {
 	 * Tương đương NP_CONVERT_LOCAL_DATE(localStr, baseDate). Hỗ trợ: MMDD,
 	 * YYYYMMDD, ISO yyyy-MM-dd, yyyy-MM-ddTHH:mm:ss
 	 */
-	public static LocalDate npConvertLocalDate(String localStr, LocalDate baseDate) {
+	public LocalDate npConvertLocalDate(String localStr, LocalDate baseDate) {
 		if (localStr == null || localStr.isEmpty())
 			return null;
-		String t = localStr.trim();
-		try {
-			if (t.length() == 4 && isNumeric(t)) { // MMDD
-				int mm = Integer.parseInt(t.substring(0, 2));
-				int dd = Integer.parseInt(t.substring(2, 4));
-				return LocalDate.of(baseDate.getYear(), mm, dd);
-			}
-			if (t.length() == 8 && isNumeric(t)) { // YYYYMMDD
-				int yyyy = Integer.parseInt(t.substring(0, 4));
-				int mm = Integer.parseInt(t.substring(4, 6));
-				int dd = Integer.parseInt(t.substring(6, 8));
-				return LocalDate.of(yyyy, mm, dd);
-			}
-			// ISO date
-			if (t.length() == 10 && t.charAt(4) == '-' && t.charAt(7) == '-') {
-				return LocalDate.parse(t);
-			}
-			// ISO datetime -> lấy date
-			if (t.contains("T")) {
-				return LocalDateTime.parse(t).toLocalDate();
-			}
-		} catch (Exception ignored) {
-		}
-		return null;
+		return StoreUlts.NP_CONVERT_LOCAL_DATE(localStr, baseDate);
+
 	}
 
 	/** Lấy HHmmss từ timestamp giao dịch. */
-	public static String hhmmssFromTimestamp(InstantTs ts) {
-		if (ts == null || ts.instant == null)
+	public String hhmmssFromTimestamp(Date ts) {
+		if (ts == null)
 			return null;
-		return DateTimeFormatter.ofPattern("HHmmss").format(ZonedDateTime.ofInstant(ts.instant, ts.zone));
+		DateFormat df = new SimpleDateFormat("HHmmss");
+
+		return df.format(ts);
 	}
 
 	// Đại diện timestamp + zone (để định dạng giờ local chuẩn).
-	public static final class InstantTs {
+	public final class InstantTs {
 		public final Instant instant;
 		public final ZoneId zone;
 
@@ -159,7 +160,7 @@ public  class IbftConverters {
 			this.zone = zone;
 		}
 
-		public static InstantTs of(Instant i, ZoneId z) {
+		public InstantTs of(Instant i, ZoneId z) {
 			return new InstantTs(i, z);
 		}
 	}
@@ -167,58 +168,64 @@ public  class IbftConverters {
 	// ====================== Các HÀM CONVERT TỪNG TRƯỜNG =====================
 
 	// --- Nhóm header/định danh ---
-	public static Integer toDataId() {
-		return 1;
+	public BigDecimal toDataId() {
+		return new BigDecimal(1);
 	} // DATA_ID = 1
 
-	public static Long toPpcode(String procCode) {
-		return toLong(procCode);
+	public BigDecimal toPpcode(String procCode) {
+		return toBigDecimal(procCode);
 	} // PPCODE
 
-	public static String toMsgType() {
-		return "210";
+	public BigDecimal toMsgType() {
+		return new BigDecimal(210);
 	} // MSGTYPE
 
 	// --- PAN/PCODE/AMOUNT/TRACE/LOCAL_TIME/LOCAL_DATE/SETTLEMENT_DATE ---
-	public static String toPan(String cardNo) {
+	public String toPan(String cardNo) {
 		return cardNo;
 	} // PAN = CARD_NO
 
-	public static Long toPcode(String procCode) {
-		return toLong(procCode);
+	public BigDecimal toPcode(String procCode) {
+		return toBigDecimal(procCode);
 	}
 
-	public static BigDecimal toAmount(String amountRaw) {
+	public BigDecimal toAmount(String amountRaw) {
 		return amountFromTail2(amountRaw);
 	}
 
-	public static Long toTrace(String traceNo) {
-		return toLong("2" + nz(traceNo, ""));
+	public BigDecimal toTrace(String traceNo) {
+		return toBigDecimal("2" + nz(traceNo, ""));
 	} // TRACE = To_Number('2'||TRACE_NO)
 
-	public static Integer toLocalTime(String localTime) {
-		return toInt(localTime);
+	public BigDecimal toLocalTime(String localTime) {
+		return toBigDecimal(localTime);
 	}
 
-	public static LocalDate toLocalDate(String localDate, LocalDate baseToday) {
-		return npConvertLocalDate(localDate, baseToday);
+	public Date toLocalDate(String localDate, LocalDate baseToday) {
+		LocalDate localDateTime = npConvertLocalDate(localDate, baseToday);
+		ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+		Date returnDate = Date.from(localDateTime.atStartOfDay(zone).toInstant());
+		return returnDate;
 	}
 
-	public static LocalDate toSettlementDate(String settleDate, LocalDate baseToday) {
-		return npConvertLocalDate(settleDate, baseToday);
+	public Date toSettlementDate(String settleDate, LocalDate baseToday) {
+		LocalDate localDateTime = npConvertLocalDate(settleDate, baseToday);
+		ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+		Date returnDate = Date.from(localDateTime.atStartOfDay(zone).toInstant());
+		return returnDate;
 	}
 
 	// --- ACQUIRER/ISSUER ---
-	public static Long toAcquirer(String acqId) {
-		return toLong(acqId);
+	public BigDecimal toAcquirer(String acqId) {
+		return toBigDecimal(acqId);
 	}
 
-	public static Long toIssuer(String acqId) {
-		return toLong(acqId);
+	public BigDecimal toIssuer(String acqId) {
+		return toBigDecimal(acqId);
 	}
 
 	// --- RESPCODE (rule đặc biệt) ---
-	public static Integer toRespCode(String benId, String destAccount, String serviceCode, String issId, String tcc) {
+	public Integer toRespCode(String benId, String destAccount, String serviceCode, String issId, String tcc) {
 		if (Objects.equals(benId, "971133") && nz(destAccount, "").startsWith("NPDC"))
 			return 68;
 		if (Objects.equals(serviceCode, "QR_PUSH"))
@@ -231,58 +238,58 @@ public  class IbftConverters {
 		return 0;
 	}
 
-	public static Integer toMerchantType() {
-		return 6011;
+	public BigDecimal toMerchantType() {
+		return new BigDecimal(6011);
 	}
 
-	public static Long toMerchantTypeOrig(String mcc) {
-		return toLong(mcc);
+	public BigDecimal toMerchantTypeOrig(String mcc) {
+		return toBigDecimal(mcc);
 	}
 
-	public static String toAuthNum(String approvalCode) {
+	public String toAuthNum(String approvalCode) {
 		return approvalCode;
 	}
 
-	public static Integer toSettleCurrency() {
-		return 704;
+	public BigDecimal toSettleCurrency() {
+		return new BigDecimal(704);
 	}
 
 	// --- TERMID/ADD_INFO/ACCTNUM/ISS_CURRENCY_CODE/ORIG* ---
-	public static String toTermId(String termId) {
+	public String toTermId(String termId) {
 		return termId;
 	}
 
-	public static String toAddInfo(String addInfo) {
+	public String toAddInfo(String addInfo) {
 		return addInfo;
 	}
 
-	public static String toAcctNum(String accountNo, String destAccount) {
-		return nz(accountNo, " ") + "|" + nz(destAccount, "");
+	public String toAcctNum(String accountNo, String destAccount) {
+		return nz(accountNo, "") + "|" + nz(destAccount, "");
 	}
 
-	public static Integer toIssCurrencyCode() {
-		return 704;
+	public BigDecimal toIssCurrencyCode() {
+		return new BigDecimal(704);
 	}
 
-	public static Long toOrigTrace(String traceNo) {
-		return toLong(traceNo);
+	public BigDecimal toOrigTrace(String traceNo) {
+		return toBigDecimal(traceNo);
 	}
 
-	public static Long toOrigIss(String acqId) {
+	public Long toOrigIss(String acqId) {
 		return toLong(acqId);
 	}
 
-	public static String toOrigRespCode() {
-		return "97";
+	public BigDecimal toOrigRespCode() {
+		return new BigDecimal(97);
 	}
 
-	public static Integer toChCurrencyCode() {
-		return 704;
+	public BigDecimal toChCurrencyCode() {
+		return new BigDecimal(704);
 	}
 
 	// --- ACQUIRER_FE / ACQUIRER_RP / ISSUER_FE / ISSUER_RP (bao gồm rule đặc biệt)
 	// ---
-	public static Long toAcquirerLikeMapId(String acqId, MapIbftAcqIdService mapSvc) {
+	public Long toAcquirerLikeMapId(String acqId) {
 		Long acq = toLong(acqId);
 		if (acq == null)
 			return null;
@@ -290,37 +297,39 @@ public  class IbftConverters {
 			return 970459L;
 		if (acq == 970415L)
 			return 970489L;
-		return Optional.ofNullable(mapSvc).map(s -> s.mapAcquirer(acqId)).orElse(null);
+		return Long.parseLong(StoreUlts.MAP_IBFT_ACQ_ID(acqId) + "");
+//		return Optional.ofNullable(mapSvc).map(s -> s.mapAcquirer(acqId)).orElse(null);
 	}
 
-	public static Long toAcquirerFe(String acqId, MapIbftAcqIdService mapSvc) {
-		return toAcquirerLikeMapId(acqId, mapSvc);
+	public BigDecimal toAcquirerFe(String acqId) {
+		return new BigDecimal(toAcquirerLikeMapId(acqId));
 	}
 
-	public static Long toAcquirerRp(String issId, String acqId, MapIbftAcqIdService mapSvc) {
+	public BigDecimal toAcquirerRp(String issId, String acqId) {
 		String iss = trim(issId);
 		if (Objects.equals(iss, "980471"))
-			return 980471L;
+			return new BigDecimal(980471);
 		if (Objects.equals(iss, "980475"))
-			return 980478L;
-		return toAcquirerLikeMapId(acqId, mapSvc);
+			return new BigDecimal(980478);
+		return new BigDecimal(toAcquirerLikeMapId(acqId));
 	}
 
-	public static Long toIssuerFe(String acqId, MapIbftAcqIdService mapSvc) {
-		return toAcquirerLikeMapId(acqId, mapSvc);
+	public BigDecimal toIssuerFe(String acqId) {
+		return new BigDecimal(toAcquirerLikeMapId(acqId));
 	}
 
-	public static Long toIssuerRp(String issId, String acqId, MapIbftAcqIdService mapSvc) {
-		String iss = trim(issId);
-		if (Objects.equals(iss, "980471"))
-			return 980471L;
-		if (Objects.equals(iss, "980475"))
-			return 980478L;
-		return toAcquirerLikeMapId(acqId, mapSvc);
+	public BigDecimal toIssuerRp(String issId, String acqId) {
+//		String iss = trim(issId);
+//		if (Objects.equals(iss, "980471"))
+//			return 980471L;
+//		if (Objects.equals(iss, "980475"))
+//			return 980478L;
+//		return toAcquirerLikeMapId(acqId);
+		return toAcquirerRp(issId, acqId);
 	}
 
 	// --- PCODE2 theo TCC/SERVICE_CODE ---
-	public static Integer toPcode2(String tcc, String serviceCode) {
+	public Integer toPcode2(String tcc, String serviceCode) {
 		if (Objects.equals(tcc, "99"))
 			return 930000;
 		if (Objects.equals(tcc, "95"))
@@ -334,12 +343,12 @@ public  class IbftConverters {
 		return 910000;
 	}
 
-	public static String toFromSys() {
+	public String toFromSys() {
 		return "IBT";
 	}
 
 	// --- BB_BIN ---
-	public static Long toBbBin(String issId, String benId, String procCode, String destAccount, IbtBinService ibtSvc) {
+	public Long toBbBin(String issId, String benId, String procCode, String destAccount) {
 		String iss = trim(issId);
 		if (Objects.equals(iss, "980472"))
 			return 980471L;
@@ -348,29 +357,30 @@ public  class IbftConverters {
 
 		boolean isBenMode = benId != null && ("912020".equals(procCode) || "910020".equals(procCode));
 		if (isBenMode)
-			return Optional.ofNullable(ibtSvc).map(s -> s.getIbtBin(benId)).orElse(null);
+			return Long.parseLong(ibftBankBinService.getIbtBin(benId) + "");
 		String left6 = Optional.ofNullable(destAccount).filter(s -> s.length() >= 6).map(s -> s.substring(0, 6))
 				.orElse(null);
-		return Optional.ofNullable(ibtSvc).map(s -> s.getIbtBin(left6)).orElse(null);
+		return Long.parseLong(ibftBankBinService.getIbtBin(left6) + "");
 	}
 
 	// --- BB_BIN_ORIG ---
-	public static Long toBbBinOrig(String benId, String issId, String procCode, String destAccount,
-			IbtBinService ibtSvc, ToNumberBnvService bnvSvc, Tgtt20Checker tgtt20) {
+	public BigDecimal toBbBinOrig(String benId, String issId, String procCode, String destAccount) {
 		// TGTT 2.0
-		if (tgtt20 != null && tgtt20.isTgtt20(benId)) {
-			return Optional.ofNullable(bnvSvc).map(s -> s.toNumberBnv(benId)).orElse(null);
-		}
+//		if (tgtt20 != null && tgtt20.isTgtt20(benId)) {
+//			return Optional.ofNullable(bnvSvc).map(s -> s.toNumberBnv(benId)).orElse(null);
+//		}
+		if (tgtt20Service.checkTGTTExist(benId))
+			return new BigDecimal(StoreUlts.to_number_bnv(benId));
 		String iss = trim(issId);
 		if (Objects.equals(iss, "980472") || Objects.equals(iss, "980474") || Objects.equals(iss, "980475")) {
 			boolean isBenMode = benId != null && ("912020".equals(procCode) || "910020".equals(procCode));
 			if (isBenMode)
-				return Optional.ofNullable(ibtSvc).map(s -> s.getIbtBin(benId)).orElse(null);
+				return new BigDecimal(ibftBankBinService.getIbtBin(benId));
 			String left6 = Optional.ofNullable(destAccount).filter(s -> s.length() >= 6).map(s -> s.substring(0, 6))
 					.orElse(null);
-			return Optional.ofNullable(ibtSvc).map(s -> s.getIbtBin(left6)).orElse(null);
+			return new BigDecimal(ibftBankBinService.getIbtBin(left6));
 		}
-		return Optional.ofNullable(bnvSvc).map(s -> s.toNumberBnv(benId)).orElse(null);
+		return new BigDecimal(StoreUlts.to_number_bnv(benId));
 	}
 
 	/**
@@ -382,104 +392,106 @@ public  class IbftConverters {
 	}
 
 	// --- CONTENT_FUND / TXNSRC / COUNTRY / POS / ADDRESPONSE / MVV ---
-	public static String toContentFund(String ibftInfo) {
+	public String toContentFund(String ibftInfo) {
 		return ibftInfo;
 	}
 
-	public static String toTxnSrc() {
+	public String toTxnSrc() {
 		return "MTI=200";
 	}
 
-	public static String toAcqCountry(String acqCountry) {
+	public String toAcqCountry(String acqCountry) {
 		return acqCountry;
 	}
 
-	public static String toPosEntryCode(String code) {
+	public String toPosEntryCode(String code) {
 		return code;
 	}
 
-	public static String toPosConditionCode(String code) {
+	public String toPosConditionCode(String code) {
 		return code;
 	}
 
-	public static String toAddResponse(String addResponse) {
+	public String toAddResponse(String addResponse) {
 		return addResponse;
 	}
 
-	public static String toMvv(String mvv) {
+	public String toMvv(String mvv) {
 		return mvv;
 	}
 
 	// --- F4/F5/F6/F49 & Settlement fields ---
-	public static Long toF4(String f4) {
-		return numericFromTail2(f4);
+	public BigDecimal toF4(String f4) {
+		return new BigDecimal(numericFromTail2(f4));
 	}
 
-	public static Long toF5(String f5) {
-		return numericFromTail2(f5);
+	public BigDecimal toF5(String f5) {
+		return new BigDecimal(numericFromTail2(f5));
 	}
 
-	public static Long toF6(String f6) {
-		return numericFromTail2(f6);
+	public BigDecimal toF6(String f6) {
+		return new BigDecimal(numericFromTail2(f6));
 	}
 
-	public static String toF49(String f49) {
+	public String toF49(String f49) {
 		return f49;
 	}
 
-	public static String toSettlementCode(String v) {
+	public String toSettlementCode(String v) {
 		return v;
 	}
 
-	public static String toSettlementRate(String v) {
+	public String toSettlementRate(String v) {
 		return v;
 	}
 
-	public static String toIssConvRate(String v) {
+	public String toIssConvRate(String v) {
 		return v;
 	}
 
-	public static String toTcc(String tcc) {
+	public String toTcc(String tcc) {
 		return tcc;
 	}
 
 	// --- REFNUM / TRANDATE / TRANTIME / ACCEPTOR / TERMLOC / F15 / PCODE_ORIG ---
-	public static String toRefnum(String refNo) {
+	public String toRefnum(String refNo) {
 		return refNo;
 	}
 
-	public static LocalDate toTranDate(InstantTs ts) {
-		if (ts == null || ts.instant == null)
-			return null;
-		return ZonedDateTime.ofInstant(ts.instant, ts.zone).toLocalDate();
+	public Date toTranDate(Date ts) {
+		return ts;
 	}
 
-	public static String toTranTime(InstantTs ts) {
-		return hhmmssFromTimestamp(ts);
+	public BigDecimal toTranTime(Date transTime) {
+		return new BigDecimal(hhmmssFromTimestamp(transTime));
 	}
 
-	public static String toAcceptorName(String s) {
+	public String toAcceptorName(String s) {
 		return s;
 	}
 
-	public static String toTermLoc(String s) {
+	public String toTermLoc(String s) {
 		return s;
 	}
 
-	public static LocalDate toF15(String settleDate, LocalDate baseToday) {
-		return npConvertLocalDate(settleDate, baseToday);
+	public Date toF15(String settleDate, LocalDate baseToday) {
+		LocalDate localDateTime = StoreUlts.NP_CONVERT_LOCAL_DATE(settleDate, baseToday);
+		ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+		Date returnDate = Date.from(localDateTime.atStartOfDay(zone).toInstant());
+		return returnDate;
+//		return npConvertLocalDate(settleDate, baseToday);
 	}
 
-	public static Long toPcodeOrig(String procCode) {
-		return toLong(procCode);
+	public BigDecimal toPcodeOrig(String procCode) {
+		return toBigDecimal(procCode);
 	}
 
 	// --- ACCOUNT_NO / DEST_ACCOUNT ---
-	public static String toAccountNo(String s) {
+	public String toAccountNo(String s) {
 		return s;
 	}
 
-	public static String toDestAccount(String s) {
+	public String toDestAccount(String s) {
 		return s;
 	}
 }
