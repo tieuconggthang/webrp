@@ -107,7 +107,7 @@ public class Test {
 //		// 20.
 //		checkBackEdnDouble();
 //		// 21
-//		indexFee();
+		indexFee();
 //		// 22
 //		calFeeTransaction();
 //		// 23

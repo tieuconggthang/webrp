@@ -35,9 +35,4 @@ public interface IsomessageTmpTurnRepo extends JpaRepository<IsomessageTmpTurn, 
 		    nativeQuery = true)
 	List<IsomessageTmpTurn> fetchNotMatchedAfterId(@Param("lastId") long lastId,
 		                                               @Param("pageSize") int pageSize);
-
-
-	
-	
-	
 }

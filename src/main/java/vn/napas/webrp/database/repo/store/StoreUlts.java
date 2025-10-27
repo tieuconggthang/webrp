@@ -13,6 +13,7 @@ public class StoreUlts {
 		try {
 			return Integer.parseInt(p);
 		} catch (Exception e) {
+			System.out.println(p);
 			return null;
 		}
 	}

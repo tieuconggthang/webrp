@@ -5,24 +5,24 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
 
-
 /**
  * The persistent class for the SHCLOG_SETT_IBFT database table.
  * 
  */
 @Entity
-@Table(name="SHCLOG_SETT_IBFT")
-@NamedQuery(name="ShclogSettIbft.findAll", query="SELECT s FROM ShclogSettIbft s")
+@Table(name = "SHCLOG_SETT_IBFT")
+@NamedQuery(name = "ShclogSettIbft.findAll", query = "SELECT s FROM ShclogSettIbft s")
 public class ShclogSettIbft implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@Id
-	@Column(name="tidb_id")
-	private long tidbId;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "tidb_id")
+	private Long tidbId;
 
 	private String acceptorname;
 
-	@Column(name="ACCOUNT_NO")
+	@Column(name = "ACCOUNT_NO")
 	private String accountNo;
 
 	private String acctnum;
@@ -30,33 +30,33 @@ public class ShclogSettIbft implements Serializable {
 	private String acctnum1;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="ACH_EDIT_DATE")
+	@Column(name = "ACH_EDIT_DATE")
 	private Date achEditDate;
 
-	@Column(name="ACH_RECONCIL_STATUS")
+	@Column(name = "ACH_RECONCIL_STATUS")
 	private String achReconcilStatus;
 
-	@Column(name="ACQ_COUNTRY")
+	@Column(name = "ACQ_COUNTRY")
 	private BigDecimal acqCountry;
 
-	@Column(name="ACQ_CURRENCY_CODE")
+	@Column(name = "ACQ_CURRENCY_CODE")
 	private BigDecimal acqCurrencyCode;
 
-	@Column(name="ACQ_RQ")
+	@Column(name = "ACQ_RQ")
 	private BigDecimal acqRq;
 
 	private BigDecimal acquirer;
 
-	@Column(name="ACQUIRER_FE")
+	@Column(name = "ACQUIRER_FE")
 	private BigDecimal acquirerFe;
 
-	@Column(name="ACQUIRER_REF")
+	@Column(name = "ACQUIRER_REF")
 	private String acquirerRef;
 
-	@Column(name="ACQUIRER_RP")
+	@Column(name = "ACQUIRER_RP")
 	private BigDecimal acquirerRp;
 
-	@Column(name="ADD_INFO")
+	@Column(name = "ADD_INFO")
 	private String addInfo;
 
 	private String addresponse;
@@ -65,88 +65,88 @@ public class ShclogSettIbft implements Serializable {
 
 	private String authnum;
 
-	@Column(name="BB_ACCOUNT")
+	@Column(name = "BB_ACCOUNT")
 	private String bbAccount;
 
-	@Column(name="BB_BIN")
+	@Column(name = "BB_BIN")
 	private BigDecimal bbBin;
 
-	@Column(name="BB_BIN_ORIG")
+	@Column(name = "BB_BIN_ORIG")
 	private BigDecimal bbBinOrig;
 
-	@Column(name="BNB_ACC")
+	@Column(name = "BNB_ACC")
 	private String bnbAcc;
 
-	@Column(name="BNB_SWC")
+	@Column(name = "BNB_SWC")
 	private String bnbSwc;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="CAP_DATE")
+	@Column(name = "CAP_DATE")
 	private Date capDate;
 
-	@Column(name="CARD_SEQNO")
+	@Column(name = "CARD_SEQNO")
 	private BigDecimal cardSeqno;
 
-	@Column(name="CARDHOLDER_AMOUNT")
+	@Column(name = "CARDHOLDER_AMOUNT")
 	private BigDecimal cardholderAmount;
 
-	@Column(name="CARDHOLDER_CONV_RATE")
+	@Column(name = "CARDHOLDER_CONV_RATE")
 	private BigDecimal cardholderConvRate;
 
 	private String cardproduct;
 
-	@Column(name="CH_CURRENCY_CODE")
+	@Column(name = "CH_CURRENCY_CODE")
 	private BigDecimal chCurrencyCode;
 
-	@Column(name="CHIP_INDEX")
+	@Column(name = "CHIP_INDEX")
 	private String chipIndex;
 
-	@Column(name="CODE_REF")
+	@Column(name = "CODE_REF")
 	private BigDecimal codeRef;
 
-	@Column(name="CONFIG_FEE_ID")
+	@Column(name = "CONFIG_FEE_ID")
 	private BigDecimal configFeeId;
 
-	@Column(name="CONTENT_FUND")
+	@Column(name = "CONTENT_FUND")
 	private String contentFund;
 
-	@Column(name="CONV_RATE")
+	@Column(name = "CONV_RATE")
 	private BigDecimal convRate;
 
-	@Column(name="CONV_RATE_ACQ")
+	@Column(name = "CONV_RATE_ACQ")
 	private BigDecimal convRateAcq;
 
-	@Column(name="DATA_ID")
+	@Column(name = "DATA_ID")
 	private BigDecimal dataId;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="DATE_XL_TLTO")
+	@Column(name = "DATE_XL_TLTO")
 	private Date dateXlTlto;
 
 	private String des;
 
-	@Column(name="DEST_ACCOUNT")
+	@Column(name = "DEST_ACCOUNT")
 	private String destAccount;
 
-	@Column(name="DEVICE_FEE")
+	@Column(name = "DEVICE_FEE")
 	private BigDecimal deviceFee;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="EDIT_DATE")
+	@Column(name = "EDIT_DATE")
 	private Date editDate;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="EDIT_DATE_INS")
+	@Column(name = "EDIT_DATE_INS")
 	private Date editDateIns;
 
-	@Column(name="EDIT_USER")
+	@Column(name = "EDIT_USER")
 	private String editUser;
 
 	private String endtoendid;
 
 	private BigDecimal entityid;
 
-	@Column(name="F100_UPI")
+	@Column(name = "F100_UPI")
 	private String f100Upi;
 
 	@Temporal(TemporalType.TIMESTAMP)
@@ -160,7 +160,7 @@ public class ShclogSettIbft implements Serializable {
 
 	private BigDecimal f6;
 
-	@Column(name="F60_UPI")
+	@Column(name = "F60_UPI")
 	private String f60Upi;
 
 	private String f90;
@@ -169,103 +169,103 @@ public class ShclogSettIbft implements Serializable {
 
 	private BigDecimal fee;
 
-	@Column(name="FEE_ACQ")
+	@Column(name = "FEE_ACQ")
 	private BigDecimal feeAcq;
 
-	@Column(name="FEE_IRF_ACQ")
+	@Column(name = "FEE_IRF_ACQ")
 	private BigDecimal feeIrfAcq;
 
-	@Column(name="FEE_IRF_ACQ_NO_VAT")
+	@Column(name = "FEE_IRF_ACQ_NO_VAT")
 	private BigDecimal feeIrfAcqNoVat;
 
-	@Column(name="FEE_IRF_BEN")
+	@Column(name = "FEE_IRF_BEN")
 	private BigDecimal feeIrfBen;
 
-	@Column(name="FEE_IRF_BEN_NO_VAT")
+	@Column(name = "FEE_IRF_BEN_NO_VAT")
 	private BigDecimal feeIrfBenNoVat;
 
-	@Column(name="FEE_IRF_ISS")
+	@Column(name = "FEE_IRF_ISS")
 	private BigDecimal feeIrfIss;
 
-	@Column(name="FEE_IRF_ISS_NO_VAT")
+	@Column(name = "FEE_IRF_ISS_NO_VAT")
 	private BigDecimal feeIrfIssNoVat;
 
-	@Column(name="FEE_IRF_PAY_AT")
+	@Column(name = "FEE_IRF_PAY_AT")
 	private BigDecimal feeIrfPayAt;
 
-	@Column(name="FEE_IRF_QT")
+	@Column(name = "FEE_IRF_QT")
 	private BigDecimal feeIrfQt;
 
-	@Column(name="FEE_IRF_REC_AT")
+	@Column(name = "FEE_IRF_REC_AT")
 	private BigDecimal feeIrfRecAt;
 
-	@Column(name="FEE_ISS")
+	@Column(name = "FEE_ISS")
 	private BigDecimal feeIss;
 
-	@Column(name="FEE_KEY")
+	@Column(name = "FEE_KEY")
 	private String feeKey;
 
-	@Column(name="FEE_NOTE")
+	@Column(name = "FEE_NOTE")
 	private String feeNote;
 
-	@Column(name="FEE_PACKAGE_TYPE")
+	@Column(name = "FEE_PACKAGE_TYPE")
 	private String feePackageType;
 
-	@Column(name="FEE_PAY_AT")
+	@Column(name = "FEE_PAY_AT")
 	private BigDecimal feePayAt;
 
-	@Column(name="FEE_PAY_DF")
+	@Column(name = "FEE_PAY_DF")
 	private BigDecimal feePayDf;
 
-	@Column(name="FEE_REC_AT")
+	@Column(name = "FEE_REC_AT")
 	private BigDecimal feeRecAt;
 
-	@Column(name="FEE_REC_DF")
+	@Column(name = "FEE_REC_DF")
 	private BigDecimal feeRecDf;
 
-	@Column(name="FEE_SERVICE")
+	@Column(name = "FEE_SERVICE")
 	private BigDecimal feeService;
 
-	@Column(name="FEE_SVF_ACQ")
+	@Column(name = "FEE_SVF_ACQ")
 	private BigDecimal feeSvfAcq;
 
-	@Column(name="FEE_SVF_ACQ_NO_VAT")
+	@Column(name = "FEE_SVF_ACQ_NO_VAT")
 	private BigDecimal feeSvfAcqNoVat;
 
-	@Column(name="FEE_SVF_BEN")
+	@Column(name = "FEE_SVF_BEN")
 	private BigDecimal feeSvfBen;
 
-	@Column(name="FEE_SVF_BEN_NO_VAT")
+	@Column(name = "FEE_SVF_BEN_NO_VAT")
 	private BigDecimal feeSvfBenNoVat;
 
-	@Column(name="FEE_SVF_ISS")
+	@Column(name = "FEE_SVF_ISS")
 	private BigDecimal feeSvfIss;
 
-	@Column(name="FEE_SVF_ISS_NO_VAT")
+	@Column(name = "FEE_SVF_ISS_NO_VAT")
 	private BigDecimal feeSvfIssNoVat;
 
-	@Column(name="FEE_SVF_PAY_AT")
+	@Column(name = "FEE_SVF_PAY_AT")
 	private BigDecimal feeSvfPayAt;
 
-	@Column(name="FEE_SVF_QT")
+	@Column(name = "FEE_SVF_QT")
 	private BigDecimal feeSvfQt;
 
-	@Column(name="FEE_SVF_REC_AT")
+	@Column(name = "FEE_SVF_REC_AT")
 	private BigDecimal feeSvfRecAt;
 
-	@Column(name="FORWARD_INST")
+	@Column(name = "FORWARD_INST")
 	private BigDecimal forwardInst;
 
-	@Column(name="FROM_SML")
+	@Column(name = "FROM_SML")
 	private String fromSml;
 
-	@Column(name="FROM_SYS")
+	@Column(name = "FROM_SYS")
 	private String fromSys;
 
-	@Column(name="INS_PCODE")
+	@Column(name = "INS_PCODE")
 	private BigDecimal insPcode;
 
-	@Column(name="INS_TYPE_FEE")
+	@Column(name = "INS_TYPE_FEE")
 	private String insTypeFee;
 
 	private String instrid;
@@ -282,32 +282,32 @@ public class ShclogSettIbft implements Serializable {
 
 	private BigDecimal irfissbnb;
 
-	@Column(name="IS_PART_REV")
+	@Column(name = "IS_PART_REV")
 	private BigDecimal isPartRev;
 
-	@Column(name="IS_PARTIAL_SYNC")
+	@Column(name = "IS_PARTIAL_SYNC")
 	private BigDecimal isPartialSync;
 
 	private BigDecimal isrev;
 
-	@Column(name="ISS_CONV_RATE")
+	@Column(name = "ISS_CONV_RATE")
 	private BigDecimal issConvRate;
 
-	@Column(name="ISS_CURRENCY_CODE")
+	@Column(name = "ISS_CURRENCY_CODE")
 	private BigDecimal issCurrencyCode;
 
-	@Column(name="ISS_RQ")
+	@Column(name = "ISS_RQ")
 	private BigDecimal issRq;
 
 	private BigDecimal issuer;
 
-	@Column(name="ISSUER_DATA")
+	@Column(name = "ISSUER_DATA")
 	private String issuerData;
 
-	@Column(name="ISSUER_FE")
+	@Column(name = "ISSUER_FE")
 	private BigDecimal issuerFe;
 
-	@Column(name="ISSUER_RP")
+	@Column(name = "ISSUER_RP")
 	private BigDecimal issuerRp;
 
 	private String lddnv;
@@ -315,59 +315,59 @@ public class ShclogSettIbft implements Serializable {
 	private String loaigdreveso;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="LOCAL_DATE")
+	@Column(name = "LOCAL_DATE")
 	private Date localDate;
 
-	@Column(name="LOCAL_TIME")
+	@Column(name = "LOCAL_TIME")
 	private BigDecimal localTime;
 
-	@Column(name="MA_TLTO")
+	@Column(name = "MA_TLTO")
 	private String maTlto;
 
-	@Column(name="MERCHANT_CODE")
+	@Column(name = "MERCHANT_CODE")
 	private String merchantCode;
 
-	@Column(name="MERCHANT_TYPE")
+	@Column(name = "MERCHANT_TYPE")
 	private BigDecimal merchantType;
 
-	@Column(name="MERCHANT_TYPE_ORIG")
+	@Column(name = "MERCHANT_TYPE_ORIG")
 	private BigDecimal merchantTypeOrig;
 
 	private String msgid;
 
 	private BigDecimal msgtype;
 
-	@Column(name="MSGTYPE_DETAIL")
+	@Column(name = "MSGTYPE_DETAIL")
 	private String msgtypeDetail;
 
 	private String mvv;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="NAPAS_DATE")
+	@Column(name = "NAPAS_DATE")
 	private Date napasDate;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="NAPAS_EDIT_DATE")
+	@Column(name = "NAPAS_EDIT_DATE")
 	private Date napasEditDate;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="NAPAS_EDIT_DATE_INS")
+	@Column(name = "NAPAS_EDIT_DATE_INS")
 	private Date napasEditDateIns;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="NAPAS_ND_DATE")
+	@Column(name = "NAPAS_ND_DATE")
 	private Date napasNdDate;
 
-	@Column(name="NEW_FEE")
+	@Column(name = "NEW_FEE")
 	private BigDecimal newFee;
 
-	@Column(name="NSPK_F5")
+	@Column(name = "NSPK_F5")
 	private BigDecimal nspkF5;
 
-	@Column(name="ONLY_SML")
+	@Column(name = "ONLY_SML")
 	private String onlySml;
 
-	@Column(name="ORIG_ACQ")
+	@Column(name = "ORIG_ACQ")
 	private BigDecimal origAcq;
 
 	private String originator;
@@ -382,31 +382,31 @@ public class ShclogSettIbft implements Serializable {
 
 	private BigDecimal pcode;
 
-	@Column(name="PCODE_ORIG")
+	@Column(name = "PCODE_ORIG")
 	private BigDecimal pcodeOrig;
 
 	private BigDecimal pcode2;
 
-	@Column(name="POS_CONDITION_CODE")
+	@Column(name = "POS_CONDITION_CODE")
 	private BigDecimal posConditionCode;
 
-	@Column(name="POS_ENTRY_CODE")
+	@Column(name = "POS_ENTRY_CODE")
 	private BigDecimal posEntryCode;
 
 	private BigDecimal ppcode;
 
-	@Column(name="PRE_CARDHOLDER_AMOUNT")
+	@Column(name = "PRE_CARDHOLDER_AMOUNT")
 	private BigDecimal preCardholderAmount;
 
 	private BigDecimal preamount;
 
-	@Column(name="PREAMOUNT_ACQ")
+	@Column(name = "PREAMOUNT_ACQ")
 	private BigDecimal preamountAcq;
 
-	@Column(name="PREAMOUNT_TRANX")
+	@Column(name = "PREAMOUNT_TRANX")
 	private BigDecimal preamountTranx;
 
-	@Column(name="PREAMOUNT_USD")
+	@Column(name = "PREAMOUNT_USD")
 	private BigDecimal preamountUsd;
 
 	private BigDecimal qamount;
@@ -415,73 +415,73 @@ public class ShclogSettIbft implements Serializable {
 
 	private BigDecimal rc;
 
-	@Column(name="RC_ACQ")
+	@Column(name = "RC_ACQ")
 	private String rcAcq;
 
-	@Column(name="RC_ACQ_72")
+	@Column(name = "RC_ACQ_72")
 	private BigDecimal rcAcq72;
 
-	@Column(name="RC_BEN")
+	@Column(name = "RC_BEN")
 	private String rcBen;
 
-	@Column(name="RC_ISS")
+	@Column(name = "RC_ISS")
 	private String rcIss;
 
-	@Column(name="RC_ISS_72")
+	@Column(name = "RC_ISS_72")
 	private BigDecimal rcIss72;
 
 	private BigDecimal reamount;
 
-	@Column(name="REASON_EDIT")
+	@Column(name = "REASON_EDIT")
 	private String reasonEdit;
 
 	private String refnum;
 
-	@Column(name="REPAY_USD")
+	@Column(name = "REPAY_USD")
 	private BigDecimal repayUsd;
 
 	private BigDecimal respcode;
 
-	@Column(name="RESPCODE_GW")
+	@Column(name = "RESPCODE_GW")
 	private String respcodeGw;
 
 	private BigDecimal revcode;
 
-	@Column(name="SENDER_ACC")
+	@Column(name = "SENDER_ACC")
 	private String senderAcc;
 
-	@Column(name="SENDER_SWC")
+	@Column(name = "SENDER_SWC")
 	private String senderSwc;
 
-	@Column(name="SEQUENCE_IN_MONTH")
+	@Column(name = "SEQUENCE_IN_MONTH")
 	private BigDecimal sequenceInMonth;
 
-	@Column(name="SETT_CURRENCY_CODE")
+	@Column(name = "SETT_CURRENCY_CODE")
 	private BigDecimal settCurrencyCode;
 
-	@Column(name="SETTLEMENT_AMOUNT")
+	@Column(name = "SETTLEMENT_AMOUNT")
 	private BigDecimal settlementAmount;
 
-	@Column(name="SETTLEMENT_CODE")
+	@Column(name = "SETTLEMENT_CODE")
 	private BigDecimal settlementCode;
 
 	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="SETTLEMENT_DATE")
+	@Column(name = "SETTLEMENT_DATE")
 	private Date settlementDate;
 
-	@Column(name="SETTLEMENT_RATE")
+	@Column(name = "SETTLEMENT_RATE")
 	private BigDecimal settlementRate;
 
 	private BigDecimal shcerror;
 
-	@Column(name="SML_VERIFY")
+	@Column(name = "SML_VERIFY")
 	private String smlVerify;
 
 	private String src;
 
 	private BigDecimal stt;
 
-	@Column(name="STT_ORIG")
+	@Column(name = "STT_ORIG")
 	private BigDecimal sttOrig;
 
 	private BigDecimal svfacqnp;
@@ -494,7 +494,7 @@ public class ShclogSettIbft implements Serializable {
 
 	private String termid;
 
-	@Column(name="TERMID_ACQ")
+	@Column(name = "TERMID_ACQ")
 	private String termidAcq;
 
 	private String termid1;
@@ -526,34 +526,34 @@ public class ShclogSettIbft implements Serializable {
 
 	private String token;
 
-	@Column(name="TOKEN_REQUESTOR")
+	@Column(name = "TOKEN_REQUESTOR")
 	private String tokenRequestor;
 
 	private BigDecimal trace;
 
-	@Column(name="TRACK2_SERVICE_CODE")
+	@Column(name = "TRACK2_SERVICE_CODE")
 	private String track2ServiceCode;
 
-	@Column(name="TRAN_CASE")
+	@Column(name = "TRAN_CASE")
 	private String tranCase;
 
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date trandate;
 
-	@Column(name="TRANSACTION_AMOUNT")
+	@Column(name = "TRANSACTION_AMOUNT")
 	private BigDecimal transactionAmount;
 
 	private BigDecimal transferee;
 
-	@Column(name="TRANSIT_CSRR")
+	@Column(name = "TRANSIT_CSRR")
 	private String transitCsrr;
 
 	private BigDecimal trantime;
 
-	@Column(name="TXN_END_TIME")
+	@Column(name = "TXN_END_TIME")
 	private BigDecimal txnEndTime;
 
-	@Column(name="TXN_START_TIME")
+	@Column(name = "TXN_START_TIME")
 	private BigDecimal txnStartTime;
 
 	private String txndest;

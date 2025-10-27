@@ -828,7 +828,7 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 		int iSTT = step2getMaxSTT();
 //        step0Prepare();
 		p.addValue("iSTT", iSTT);
-//		step31Update();
+		step31Update();
 //		step32Insert();
 		step32InsertBatch();
 //        step3UpdateStt();
@@ -871,7 +871,7 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 //VirtualThreadExecutor.
 				try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
 //				Executors.newVirtualThreadPerTaskExecutor()
-					executor.submit(() -> processPage(batch));
+//					executor.submit(() -> processPage(batch));
 					futures.add(executor.submit(() -> processPage(batch)));
 				}
 				cursor = batch.get(batch.size() - 1).getTidbId(); // hoặc lấy từ _tidb_rowid nếu bạn có field map
