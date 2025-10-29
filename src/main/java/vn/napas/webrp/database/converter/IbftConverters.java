@@ -365,22 +365,28 @@ public class IbftConverters {
 
 	// --- BB_BIN_ORIG ---
 	public BigDecimal toBbBinOrig(String benId, String issId, String procCode, String destAccount) {
-		// TGTT 2.0
+		try {
+			// TGTT 2.0
 //		if (tgtt20 != null && tgtt20.isTgtt20(benId)) {
 //			return Optional.ofNullable(bnvSvc).map(s -> s.toNumberBnv(benId)).orElse(null);
 //		}
-		if (tgtt20Service.checkTGTTExist(benId))
+			if (tgtt20Service.checkTGTTExist(benId))
+				return new BigDecimal(StoreUlts.to_number_bnv(benId));
+			String iss = trim(issId);
+			if (Objects.equals(iss, "980472") || Objects.equals(iss, "980474") || Objects.equals(iss, "980475")) {
+				boolean isBenMode = benId != null && ("912020".equals(procCode) || "910020".equals(procCode));
+				if (isBenMode)
+					return new BigDecimal(ibftBankBinService.getIbtBin(benId));
+				String left6 = Optional.ofNullable(destAccount).filter(s -> s.length() >= 6).map(s -> s.substring(0, 6))
+						.orElse(null);
+				return new BigDecimal(ibftBankBinService.getIbtBin(left6));
+			}
+
 			return new BigDecimal(StoreUlts.to_number_bnv(benId));
-		String iss = trim(issId);
-		if (Objects.equals(iss, "980472") || Objects.equals(iss, "980474") || Objects.equals(iss, "980475")) {
-			boolean isBenMode = benId != null && ("912020".equals(procCode) || "910020".equals(procCode));
-			if (isBenMode)
-				return new BigDecimal(ibftBankBinService.getIbtBin(benId));
-			String left6 = Optional.ofNullable(destAccount).filter(s -> s.length() >= 6).map(s -> s.substring(0, 6))
-					.orElse(null);
-			return new BigDecimal(ibftBankBinService.getIbtBin(left6));
+		} catch (Exception e) {
+			
+			return null;
 		}
-		return new BigDecimal(StoreUlts.to_number_bnv(benId));
 	}
 
 	/**

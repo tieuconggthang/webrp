@@ -803,8 +803,8 @@ public class Proc_MERGE_SHC_SETT_IBFT_200 {
 //		MapSqlParameterSource p = new MapSqlParameterSource();
 //		int rows = exec(MODULE, SQL_STEP3_2INSERT_NOT_EXISTS, p);
 ////        int rows = executeUpdate(SQL_STEP3_2INSERT_NOT_EXISTS);
-		processNotMatched(5000);
-		log("step32Insert affected");
+		int rows = processNotMatched(5000);
+		log("step32Insert affected: " + rows);
 //        return rows;
 	}
 

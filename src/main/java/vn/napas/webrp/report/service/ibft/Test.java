@@ -101,13 +101,13 @@ public class Test {
 		getIsoMsgTmpTurnToSHCLOG_SETT_IBFT();
 		// 10.
 		gatherTable(TableConstant.shemaName, TableConstant.SHCLOG_SETT_IBFT);
-//		// 12.
+//		// 11.
 		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
 //		// 20.
 //		checkBackEdnDouble();
 //		// 21
-		indexFee();
+//		indexFee();
 //		// 22
 //		calFeeTransaction();
 //		// 23
@@ -130,7 +130,7 @@ public class Test {
 //		summaryFEE_KEY(localDateTest, 1);
 //		// 32 type name = new type();
 		// 33
-		MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDateTest);
+//		MERGE_FEE_KEY_TO_SHCLOG_SETT_IBFT(localDateTest);
 		// 33
 //		NAPAS_CAL_FEE_LOCAL_IBFT(localDateTest);
 //		// 34
