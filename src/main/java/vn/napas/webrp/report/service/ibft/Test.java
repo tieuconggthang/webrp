@@ -105,7 +105,7 @@ public class Test {
 		MERGE_SHC_SETT_IBFT_200();
 //		truncateTable(TableConstant.TBL_PAYMENT);
 //		// 20.
-//		checkBackEdnDouble();
+		checkBackEdnDouble();
 //		// 21
 //		indexFee();
 //		// 22

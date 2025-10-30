@@ -443,7 +443,7 @@ public class Proc_GET_ISOMESSAGE_TMP_TURN {
 				      END AS BB_BIN_ORIG_VAL,
 				      /* INS_PCODE */
 				      CASE WHEN t.OF_YEAR REGEXP '^[0-9]{2,}$'
-				           THEN CAST(SUBSTRING(t.OF_YEAR,1,2) AS DECIMAL(18,6)) ELSE 0 END AS INS_PCODE_DEC
+				           THEN CAST(SUBSTRING(t.OF_YEAR,1,2) AS DECIMAL(18,6)) ELSE NULL END AS INS_PCODE_DEC
 				    FROM ISOMESSAGE_TMP_TURN t
 				    WHERE t.MTI='0210'              /* đúng thủ tục gốc */
 				     AND 
