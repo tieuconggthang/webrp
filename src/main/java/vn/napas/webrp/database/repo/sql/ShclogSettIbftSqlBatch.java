@@ -206,7 +206,7 @@ public class ShclogSettIbftSqlBatch {
     
     public int syncTransactionFeePackageFromInstitution(boolean forceCast) {
         long start = System.currentTimeMillis();
-        String sql = forceCast ? SQL_SYNC_FEE_PKG_CAST : SQL_SYNC_FEE_PKG;
+        String sql = SQL_SYNC_FEE_PKG;
         try {
             int updated = jdbc.update(sql, new MapSqlParameterSource());
             log.info("syncTransactionFeePackageFromInstitution(forceCast={}) updated {} rows in {} ms",

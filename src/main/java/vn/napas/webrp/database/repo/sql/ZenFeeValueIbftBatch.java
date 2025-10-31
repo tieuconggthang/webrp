@@ -36,7 +36,7 @@ public class ZenFeeValueIbftBatch {
 	      AND msgtype = 210
 	      AND respcode = 0
 	      AND isrev IS NULL
-	      AND (
+	      AND ((
 	           (
 	             (
 	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
@@ -49,7 +49,7 @@ public class ZenFeeValueIbftBatch {
 	         OR (
 	           FROM_SYS IS NOT NULL
 	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
-	         )
+	         ))
 	    """;
 
 
@@ -87,7 +87,7 @@ public class ZenFeeValueIbftBatch {
 	      AND msgtype = 210
 	      AND respcode = 0
 	      AND isrev IS NULL
-	      AND (
+	      AND ((
 	           (
 	             (
 	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20')
@@ -100,6 +100,7 @@ public class ZenFeeValueIbftBatch {
 	         OR (
 	           FROM_SYS IS NOT NULL
 	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
+	         )
 	         )
 	    """;
 
@@ -228,7 +229,7 @@ public class ZenFeeValueIbftBatch {
 	      AND msgtype = 210
 	      AND respcode = 0
 	      AND isrev IS NULL
-	      AND (
+	      AND ((
 	           (
 	             (
 	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('00','01','30','35','40','41','42','43','48','20','03')
@@ -241,7 +242,7 @@ public class ZenFeeValueIbftBatch {
 	         OR (
 	           FROM_SYS IS NOT NULL
 	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
-	         )
+	         ))
 	    """;
 
 
@@ -281,7 +282,7 @@ public class ZenFeeValueIbftBatch {
 	      AND msgtype = 210
 	      AND respcode = 0
 	      AND isrev IS NULL
-	      AND (
+	      AND ((
 	           (
 	             (
 	               SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2)
@@ -295,7 +296,7 @@ public class ZenFeeValueIbftBatch {
 	         OR (
 	           FROM_SYS IS NOT NULL
 	           AND SUBSTR(LPAD(CAST(PCODE AS CHAR), 6, '0'), 1, 2) IN ('01','42','91')
-	         )
+	         ))
 	    """;
 
 
@@ -331,7 +332,7 @@ public class ZenFeeValueIbftBatch {
 			    FROM (
 			        SELECT
 			            A.FEE_KEY,
-			            CONCAT_WS('-', B.ZEN_VALUE, C.ZEN_VALUE, D.ZEN_VALUE, E.ZEN_VALUE, F.ZEN_VALUE) AS FEE_VALUE,
+			            CONCAT(B.ZEN_VALUE, C.ZEN_VALUE, D.ZEN_VALUE, E.ZEN_VALUE, F.ZEN_VALUE) AS FEE_VALUE,
 			            CASE
 			                WHEN A.ACQUIRER = B.ZEN_VALUE_NUM AND A.ISSUER = C.ZEN_VALUE_NUM THEN 1
 			                WHEN A.ISSUER   = C.ZEN_VALUE_NUM AND A.ACQUIRER = 0            THEN 3
